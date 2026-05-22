@@ -40,7 +40,7 @@ export function parseMarkdownFallback(text) {
 }
 
 export async function fetchStats() {
-    const resp = await fetch(`${WORKER_BASE}/api/stats`, { headers: getHeaders() });
+    const resp = await fetch(`${WORKER_BASE}/api/stats?_=${Date.now()}`, { headers: getHeaders() });
     if (resp.status === 401) {
         localStorage.removeItem('localPwd');
         alert("Неверный локальный пароль. Страница будет перезагружена.");
