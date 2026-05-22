@@ -71,11 +71,12 @@ export async function callAI(messages, updateStatusCallback, isUnlimited) {
                     method: 'POST',
                     headers: getHeaders(),
                     body: JSON.stringify({
-                        model: '@cf/google/gemma-4-26b-a4b-it',
                         messages,
                         game_count: state.allGames.length,
                         chat_template_kwargs: { enable_thinking: false },
-                        response_format: { type: 'json_object' }
+                        response_format: { type: 'json_object' },
+                        model: '@cf/google/gemma-4-26b-a4b-it',
+                        lang: state.currentLang
                     })
                 });
                 if (response.ok) {
@@ -111,7 +112,11 @@ export async function callAI(messages, updateStatusCallback, isUnlimited) {
             const response = await fetch(`${WORKER_BASE}/api/openrouter`, {
                 method: 'POST',
                 headers: getHeaders(),
-                body: JSON.stringify({ model, messages })
+                body: JSON.stringify({ 
+                    messages, 
+                    model, 
+                    lang: state.currentLang 
+                })
             });
             if (!response.ok) {
                 const err = await response.json().catch(() => ({}));

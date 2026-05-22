@@ -26,12 +26,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (dom.slider) {
         dom.slider.addEventListener('input', () => {
             updateSliderUI();
-            if (state.rawSteamGames.length > 0) {
-                const count = parseInt(dom.slider.value);
-                state.allGames = state.rawSteamGames.slice(0, count);
-                renderGames(state.allGames);
-                setStatus(i18n[state.currentLang].statusSuccess.replace('{count}', state.allGames.length), 'success');
-            }
         });
     }
 
@@ -54,7 +48,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     checkWorkerStatus();
-    updateAIResourceUI();
+    updateAIResourceUI(true);
 
     dom.loadBtn.addEventListener('click', async () => {
         const rawInput = dom.steamIdInput.value.trim();
@@ -115,14 +109,12 @@ document.addEventListener('DOMContentLoaded', () => {
             const aiResult = await callAI(messages, setStatus, isUnlimited);
             if (!aiResult?.content) throw new Error(i18n[state.currentLang].errorNoAiResponse);
 
-            console.log("AI Response:", aiResult.content);
-
             const { tierMap, reasonsMap } = parseAIResponse(aiResult.content);
 
             distributeGamesFromAI(tierMap, reasonsMap);
             setStatus(i18n[state.currentLang].statusSortSuccess, 'success');
 
-            updateAIResourceUI();
+            updateAIResourceUI(true);
         } catch (error) {
             console.error(error);
             setStatus(error.message || i18n[state.currentLang].errorAiConnection, 'error');

@@ -62,9 +62,12 @@ export function updateSliderUI() {
     }
 }
 
-export async function updateAIResourceUI() {
+export async function updateAIResourceUI(forceFetch = false) {
     try {
-        const stats = await fetchStats();
+        if (!state.stats || forceFetch) {
+            state.stats = await fetchStats();
+        }
+        const stats = state.stats;
         const isUnlimited = dom.modelToggleCheckbox?.checked;
         const remaining = Math.max(0, stats.user_limit - stats.user_used);
         const percent = (remaining / stats.user_limit) * 100;

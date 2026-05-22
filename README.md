@@ -43,9 +43,11 @@
    *   `STEAM_API_KEY`
    *   `OPENROUTER_API_KEY`
    *   `LOCAL_PASSWORD` *(пароль для защиты локальной версии от сторонних запросов)*
-5. Перейдите в раздел **Settings** -> **Bindings** -> **Workers AI** и добавьте привязку:
-   *   Variable name: `AI`
-6. Скопируйте ссылку на ваш воркер (вида `https://ваше-имя.ваша-сеть.workers.dev`).
+5. Перейдите в левом меню в раздел **Storage & Databases** -> **KV** и создайте пространство имен (Create namespace) с любым именем.
+6. В настройках воркера перейдите в **Settings** -> **Bindings**.
+   * Добавьте привязку **Workers AI**: Variable name: `AI`
+   * Добавьте привязку **KV Namespace bindings**: Variable name: `LIMITS_KV`, KV namespace: (выберите созданное на предыдущем шаге пространство).
+7. Скопируйте ссылку на ваш воркер (вида `https://ваше-имя.ваша-сеть.workers.dev`).
 
 **Способ Б: Через консоль (Wrangler)**
 Вам потребуется аккаунт Cloudflare и установленный Node.js.
@@ -61,12 +63,19 @@
 
    [ai]
    binding = "AI"
+
+   [[kv_namespaces]]
+   binding = "LIMITS_KV"
+   id = "ВАШ_KV_ID"
    ```
 4. Добавьте необходимые секреты (API ключи) в Cloudflare:
    `wrangler secret put STEAM_API_KEY`
    `wrangler secret put OPENROUTER_API_KEY`
    `wrangler secret put LOCAL_PASSWORD`
-5. Запустите воркер локально:
+5. Создайте базу данных KV для лимитов:
+   `wrangler kv:namespace create LIMITS_KV`
+   *(Вставьте полученный ID в `wrangler.toml` вместо "ВАШ_KV_ID")*
+6. Запустите воркер локально:
    `wrangler dev` (По умолчанию воркер запустится по адресу http://localhost:8787)
 
 #### 2. Настройка Frontend
@@ -128,9 +137,11 @@ You can deploy the worker in two ways: via the Cloudflare web interface (easiest
    *   `STEAM_API_KEY`
    *   `OPENROUTER_API_KEY`
    *   `LOCAL_PASSWORD` *(password to protect your local worker from third-party requests)*
-5. Go to **Settings** -> **Bindings** -> **Workers AI** and add a binding:
-   *   Variable name: `AI`
-6. Copy the link to your worker (e.g., `https://your-name.your-subdomain.workers.dev`).
+5. In the left menu, go to **Storage & Databases** -> **KV** and create a new namespace.
+6. In the worker settings, go to **Settings** -> **Bindings**:
+   * Add a **Workers AI** binding: Variable name: `AI`
+   * Add a **KV Namespace** binding: Variable name: `LIMITS_KV`, select the namespace you just created.
+7. Copy the link to your worker (e.g., `https://your-name.your-subdomain.workers.dev`).
 
 **Method B: Console (Wrangler)**
 You will need a Cloudflare account and Node.js installed.
@@ -146,12 +157,19 @@ You will need a Cloudflare account and Node.js installed.
 
    [ai]
    binding = "AI"
+
+   [[kv_namespaces]]
+   binding = "LIMITS_KV"
+   id = "YOUR_KV_ID"
    ```
 4. Add the required secrets:
    `wrangler secret put STEAM_API_KEY`
    `wrangler secret put OPENROUTER_API_KEY`
    `wrangler secret put LOCAL_PASSWORD`
-5. Run locally:
+5. Create a KV namespace for rate limits:
+   `wrangler kv:namespace create LIMITS_KV`
+   *(Paste the generated ID into `wrangler.toml` replacing "YOUR_KV_ID")*
+6. Run locally:
    `wrangler dev` (runs on http://localhost:8787 by default)
 
 #### 2. Frontend Setup
