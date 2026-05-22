@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Конструктор тир-листов Steam</title>
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <link rel="stylesheet" href="styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=Shadows+Into+Light&family=Special+Elite&display=swap"
+        rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+</head>
+
+<body>
+    <div class="canvas">
+        <div class="ritual-mark" style="top: 5%; right: 5%;">⛧</div>
+        <div class="ritual-mark" style="bottom: 15%; left: 3%;">🜏</div>
+        <div class="ritual-mark" style="top: 40%; left: 50%; font-size: 80px; opacity: 0.02;">🜓</div>
+
+        <div class="lang-toggle">
+            <span class="lang-label">RU</span>
+            <label class="theme-switch">
+                <input type="checkbox" id="langToggleCheckbox">
+                <span class="theme-slider"></span>
+            </label>
+            <span class="lang-label">EN</span>
+        </div>
+
+        <header class="header-section">
+            <h1>Steam Tier List <span class="h1-sub">by 1nfys</span></h1>
+            <p class="tagline" data-i18n="tagline">Введите ваш Steam ID для загрузки списка игр.</p>
+
+            <div class="input-group">
+                <input type="text" id="steamIdInput" data-i18n-placeholder="steamIdPlaceholder"
+                    placeholder="Steam ID или ссылка на профиль..." />
+                <button id="loadBtn" class="social-btn" data-i18n="loadBtn">Загрузить игры</button>
+            </div>
+
+            <div class="slider-container">
+                <div class="slider-header">
+                    <span class="slider-label" id="gameCountLabel">Игр для загрузки: 25</span>
+                </div>
+                <input type="range" id="gameCountSlider" min="5" max="200" value="25" step="1" class="custom-slider">
+                <div class="slider-warning" id="sliderWarning" data-i18n="sliderWarning">
+                    ⚠️ При увеличении количества игр возрастает время анализа ИИ и расход энергии!
+                </div>
+            </div>
+
+            <div class="controls hidden" id="controlsContainer">
+                <div class="actions">
+
+                    <div class="ai-sort-dropdown" id="aiSortDropdown">
+                        <button id="aiSortTrigger" class="social-btn ai-sort-trigger" data-i18n="autoSort">⚡
+                            Авто-сортировка</button>
+                        <div class="ai-sort-menu" id="aiSortMenu">
+
+                            <div class="ai-sort-menu-section" style="display: flex; justify-content: center;">
+                                <span class="slider-cost" id="energyCostLabel">Расход энергии: 1 ⚡</span>
+                            </div>
+
+
+                            <div class="ai-sort-menu-section">
+                                <div class="model-toggle-row">
+                                    <span class="model-label" data-i18n="modelGemma">Gemma (Лимитный)</span>
+                                    <label class="theme-switch">
+                                        <input type="checkbox" id="modelToggleCheckbox">
+                                        <span class="theme-slider"></span>
+                                    </label>
+                                    <span class="model-label" data-i18n="modelGpt">gpt-oss 120b (Безлимитный)</span>
+                                </div>
+                            </div>
+
+
+                            <div class="ai-sort-menu-section limits-row">
+                                <div class="limit-chip" id="aiEnergyChip">
+                                    <span class="limit-chip-label" data-i18n="aiEnergy">Энергия ИИ</span>
+                                    <span class="limit-chip-value" id="aiResourceText">20 / 20</span>
+                                    <div class="limit-chip-bar-bg">
+                                        <div class="limit-chip-bar-fill" id="aiResourceFill"></div>
+                                    </div>
+                                    <span class="limit-chip-reset" id="resetTimeText"></span>
+                                </div>
+                                <div class="limit-chip">
+                                    <span class="limit-chip-label" data-i18n="networkLimit">Лимит Сети</span>
+                                    <span class="limit-chip-value" id="globalResourceText">0 / 1000</span>
+                                    <div class="limit-chip-bar-bg">
+                                        <div class="limit-chip-bar-fill" id="globalResourceFill"></div>
+                                    </div>
+                                    <span class="limit-chip-reset" id="globalResetTimeText"></span>
+                                </div>
+                            </div>
+
+
+                            <div class="ai-sort-menu-section warning-note" data-i18n="warningNote">
+                                Примечание: Автоматическое распределение создано исключительно в развлекательных целях
+                                на базе Gemma 4. При исчерпании лимита также используется gpt-oss 120b.
+                            </div>
+
+
+                            <div class="ai-sort-menu-section">
+                                <button id="aiTierBtn" class="social-btn ai-run-btn" data-i18n="autoSort">⚡ Запустить
+                                    сортировку</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button id="exportBtn" class="social-btn" data-i18n="saveImage">📸 Сохранить изображение</button>
+                </div>
+            </div>
+
+            <div id="statusMessage" class="status-message"></div>
+        </header>
+
+        <main class="grid-layout" id="capture-area">
+            <div class="tier-list-container">
+                <div class="tier-row">
+                    <div class="tier-label s-tier">S</div>
+                    <div class="tier-dropzone" data-tier="s"></div>
+                </div>
+                <div class="tier-row">
+                    <div class="tier-label a-tier">A</div>
+                    <div class="tier-dropzone" data-tier="a"></div>
+                </div>
+                <div class="tier-row">
+                    <div class="tier-label b-tier">B</div>
+                    <div class="tier-dropzone" data-tier="b"></div>
+                </div>
+                <div class="tier-row">
+                    <div class="tier-label c-tier">C</div>
+                    <div class="tier-dropzone" data-tier="c"></div>
+                </div>
+                <div class="tier-row">
+                    <div class="tier-label d-tier">D</div>
+                    <div class="tier-dropzone" data-tier="d"></div>
+                </div>
+                <div class="tier-row">
+                    <div class="tier-label f-tier">F</div>
+                    <div class="tier-dropzone" data-tier="f"></div>
+                </div>
+            </div>
+
+            <div class="hand-drawn-box game-pool-container">
+                <h2 data-i18n="gameList">Список игр</h2>
+                <div id="gamePool" class="tier-dropzone pool" data-tier="pool">
+                    <p class="empty-pool-text" data-i18n="gamesAppearHere">Игры появятся здесь.</p>
+                </div>
+            </div>
+        </main>
+
+        <footer class="contact-footer">
+            <span class="footer-sep">© 2026 / Made by sizinfys prime</span>
+            <a href="https://www.cloudflarestatus.com/" target="_blank" rel="noopener" class="cf-status-badge">
+                <span class="cf-status-dot checking" id="cfStatusDot"></span>
+                <svg class="cf-icon" viewBox="0 0 60 24" fill="none" xmlns="http://www.w3.org/2000/svg"
+                    aria-label="Cloudflare">
+                    <path
+                        d="M38.8 14.6c.1-.4.2-.8.2-1.2 0-2.8-2.3-5.1-5.1-5.1-.9 0-1.8.2-2.5.6-.6-1.9-2.4-3.2-4.5-3.2-2.6 0-4.7 2.1-4.7 4.7v.1c-1.8.3-3.2 1.9-3.2 3.8 0 2.1 1.7 3.8 3.8 3.8h15.2c1.7 0 3.1-1.4 3.1-3.1 0-1.2-.7-2.2-1.7-2.7-.2.1-.4.2-.6.3z"
+                        fill="#F6821F" />
+                </svg>
+                <span class="cf-status-text">Cloudflare</span>
+            </a>
+        </footer>
+    </div>
+
+    <script type="module" src="js/app.js"></script>
+</body>
+
+</html>
