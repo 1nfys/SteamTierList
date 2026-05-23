@@ -15,7 +15,7 @@
 
 *   **Загрузка библиотеки Steam:** Получение списка игр пользователя по Steam ID или ссылке на профиль.
 *   **Ручная сортировка:** Интерфейс drag-and-drop для распределения игр по категориям (S, A, B, C, D, F).
-*   **Автоматическая сортировка (ИИ):** Возможность автоматического распределения игр по тирам с помощью Cloudflare Workers AI (модель Gemma 4) или резервных моделей через OpenRouter (например, Nemotron). Нейросеть также генерирует краткий вердикт для каждой игры.
+*   **Автоматическая сортировка (ИИ):** Возможность автоматического распределения игр по тирам с помощью Cloudflare Workers AI (модель Gemma 4) или резервных моделей через Mistral AI (например, Mistral Large). Нейросеть также генерирует краткий вердикт для каждой игры.
 *   **Экспорт:** Сохранение готового тир-листа в формате изображения (PNG).
 *   **Мультиязычность:** Поддержка русского и английского интерфейса.
 
@@ -42,7 +42,7 @@
    Затем нажмите **Deploy** (сохранить).
 4. Перейдите в настройки созданного воркера: **Settings** -> **Variables and Secrets**. Добавьте три переменные (тип Secret):
    *   `STEAM_API_KEY`
-   *   `OPENROUTER_API_KEY`
+   *   `MISTRAL_API_KEY`
    *   `LOCAL_PASSWORD` *(пароль для защиты локальной версии от сторонних запросов)*
 5. Перейдите в левом меню в раздел **Storage & Databases** -> **KV** и создайте пространство имен (Create namespace) с любым именем.
 6. В настройках воркера перейдите в **Settings** -> **Bindings**.
@@ -71,7 +71,7 @@
    ```
 4. Добавьте необходимые секреты (API ключи) в Cloudflare:
    `wrangler secret put STEAM_API_KEY`
-   `wrangler secret put OPENROUTER_API_KEY`
+   `wrangler secret put MISTRAL_API_KEY`
    `wrangler secret put LOCAL_PASSWORD`
 5. Создайте базу данных KV для лимитов:
    `wrangler kv:namespace create LIMITS_KV`
@@ -110,7 +110,7 @@ The project consists of a client side (Vanilla JS/HTML/CSS Frontend) and a serve
 
 *   **Load Steam Library:** Retrieve a user's game list via Steam ID or profile link.
 *   **Manual Sorting:** Drag-and-drop interface for distributing games into categories (S, A, B, C, D, F).
-*   **Automated Sorting (AI):** Automatically distribute games into tiers using Cloudflare Workers AI (Gemma 4 model) or fallback models via OpenRouter (e.g. Nemotron). The AI also generates a short verdict for each game.
+*   **Automated Sorting (AI):** Automatically distribute games into tiers using Cloudflare Workers AI (Gemma 4 model) or fallback models via Mistral AI (e.g. Mistral Large). The AI also generates a short verdict for each game.
 *   **Export:** Save the completed tier list as an image (PNG).
 *   **Multilingual:** Supports Russian and English interfaces.
 
@@ -137,7 +137,7 @@ You can deploy the worker in two ways: via the Cloudflare web interface (easiest
    Click **Deploy** (save).
 4. Go to the worker settings: **Settings** -> **Variables and Secrets**. Add three variables (type Secret):
    *   `STEAM_API_KEY`
-   *   `OPENROUTER_API_KEY`
+   *   `MISTRAL_API_KEY`
    *   `LOCAL_PASSWORD` *(password to protect your local worker from third-party requests)*
 5. In the left menu, go to **Storage & Databases** -> **KV** and create a new namespace.
 6. In the worker settings, go to **Settings** -> **Bindings**:
@@ -166,7 +166,7 @@ You will need a Cloudflare account and Node.js installed.
    ```
 4. Add the required secrets:
    `wrangler secret put STEAM_API_KEY`
-   `wrangler secret put OPENROUTER_API_KEY`
+   `wrangler secret put MISTRAL_API_KEY`
    `wrangler secret put LOCAL_PASSWORD`
 5. Create a KV namespace for rate limits:
    `wrangler kv:namespace create LIMITS_KV`

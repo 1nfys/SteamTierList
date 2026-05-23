@@ -52,7 +52,7 @@ export async function fetchStats() {
 }
 
 export async function callAI(messages, updateStatusCallback, isUnlimited) {
-    const selectedModel = isUnlimited ? 'gpt-oss' : 'gemma';
+    const selectedModel = isUnlimited ? 'mistral' : 'gemma';
 
     if (selectedModel === 'gemma') {
         let limitReached = false;
@@ -98,24 +98,23 @@ export async function callAI(messages, updateStatusCallback, isUnlimited) {
     }
 
     const models = [
-        'nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free',
-        'z-ai/glm-4.5-air:free',
-        'nvidia/nemotron-nano-9b-v2:free',
-        'openrouter/free'
+        'mistral-large-2512',
+        'ministral-3b-2512',
+        'ministral-8b-2512'
     ];
 
     let lastError = null;
     for (let i = 0; i < models.length; i++) {
         const model = models[i];
         try {
-            updateStatusCallback(i18n[state.currentLang].aiRequestOpenRouter.replace('{i}', i + 1).replace('{total}', models.length).replace('{model}', model), 'loading');
-            const response = await fetch(`${WORKER_BASE}/api/openrouter`, {
+            updateStatusCallback(i18n[state.currentLang].aiRequestMistral.replace('{i}', i + 1).replace('{total}', models.length).replace('{model}', model), 'loading');
+            const response = await fetch(`${WORKER_BASE}/api/mistral`, {
                 method: 'POST',
                 headers: getHeaders(),
-                body: JSON.stringify({ 
-                    messages, 
-                    model, 
-                    lang: state.currentLang 
+                body: JSON.stringify({
+                    messages,
+                    model,
+                    lang: state.currentLang
                 })
             });
             if (!response.ok) {
@@ -124,7 +123,7 @@ export async function callAI(messages, updateStatusCallback, isUnlimited) {
             }
             const data = await response.json();
             if (data.choices?.[0]?.message?.content) {
-                return { content: data.choices[0].message.content, source: 'openrouter' };
+                return { content: data.choices[0].message.content, source: 'mistral' };
             }
             throw new Error(i18n[state.currentLang].errorInvalidFormat);
         } catch (e) {

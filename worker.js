@@ -125,7 +125,7 @@ export default {
       return fetchJson(`https://api.steampowered.com/IPlayerService/GetOwnedGames/v0001/?key=${env.STEAM_API_KEY || ''}&steamid=${s}&include_appinfo=1&format=json`);
     }
 
-    if ((path === '/api/workers-ai' || path === '/api/openrouter') && req.method === 'POST') {
+    if ((path === '/api/workers-ai' || path === '/api/mistral') && req.method === 'POST') {
       if (!checkRateLimit(ip)) {
         return jsonRes({ error: 'Too many requests' }, 429);
       }
@@ -179,17 +179,22 @@ export default {
         }
       }
 
-      if (path === '/api/openrouter') {
+      if (path === '/api/mistral') {
         try {
-          const r = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+          const { messages, model, response_format, temperature, max_tokens } = body;
+          const cleanBody = { messages, model };
+          if (response_format) cleanBody.response_format = response_format;
+          if (temperature !== undefined) cleanBody.temperature = temperature;
+          if (max_tokens !== undefined) cleanBody.max_tokens = max_tokens;
+
+          const r = await fetch('https://api.mistral.ai/v1/chat/completions', {
             method: 'POST',
             headers: { 
               'Content-Type': 'application/json', 
-              'Authorization': `Bearer ${env.OPENROUTER_API_KEY || ''}`, 
-              'HTTP-Referer': url.origin, 
-              'X-Title': 'Steam Tier List Proxy' 
+              'Accept': 'application/json',
+              'Authorization': `Bearer ${env.MISTRAL_API_KEY || ''}`
             },
-            body: JSON.stringify(body)
+            body: JSON.stringify(cleanBody)
           });
           return jsonRes(await r.json(), r.status);
         } catch (e) {
