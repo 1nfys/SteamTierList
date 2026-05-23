@@ -24,6 +24,7 @@
 Проект не использует тяжелые фреймворки (React, Vue) или сборщики (Webpack, Vite). 
 *   **Frontend:** Каталог `js/` содержит модули ES6 (`app.js`, `ui.js`, `steam.js`, `ai.js`, `config.js`, `i18n.js`).
 *   **Backend:** Файл `worker.js` предназначен для запуска в среде Cloudflare Workers. Он скрывает API-ключи, решает проблемы с CORS и контролирует лимиты запросов к нейросетям (Rate Limiting).
+*   **Примечание:** Файлы вида `google...html` и `yandex...html` нужны только для подтверждения прав на оригинальный домен в поисковых системах. При разворачивании собственного форка их качать и переносить к себе не нужно.
 
 ### Как развернуть у себя на ПК (Локальная разработка)
 
@@ -118,6 +119,7 @@ The project consists of a client side (Vanilla JS/HTML/CSS Frontend) and a serve
 The project does not use heavy frameworks (React, Vue) or bundlers (Webpack, Vite).
 *   **Frontend:** The `js/` directory contains ES6 modules (`app.js`, `ui.js`, `steam.js`, `ai.js`, `config.js`, `i18n.js`).
 *   **Backend:** The `worker.js` file is designed to run in Cloudflare Workers. It hides API keys, resolves CORS issues, and controls rate limits for AI requests.
+*   **Note:** Files like `google...html` and `yandex...html` are solely for search engine domain verification of the original site. You don't need to download or include them if you are deploying your own fork.
 
 ### Local Development Setup
 
