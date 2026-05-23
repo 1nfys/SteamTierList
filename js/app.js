@@ -46,12 +46,12 @@ document.addEventListener('DOMContentLoaded', () => {
     let lastLoadClickTime = 0;
     dom.loadBtn.addEventListener('click', async () => {
         const now = Date.now();
-        if (now - lastLoadClickTime < 12000) return;
-        lastLoadClickTime = now;
+        if (now - lastLoadClickTime < 5000) return;
 
         const rawInput = dom.steamIdInput.value.trim();
         if (!rawInput) { setStatus(i18n[state.currentLang].statusPleaseEnter, 'error'); return; }
 
+        lastLoadClickTime = now;
         setStatus(i18n[state.currentLang].statusResolving, 'loading');
         dom.loadBtn.disabled = true;
 
@@ -91,7 +91,15 @@ document.addEventListener('DOMContentLoaded', () => {
             console.error(error);
             setStatus(error.message || i18n[state.currentLang].statusErrorLoad, 'error');
         } finally {
-            dom.loadBtn.disabled = false;
+            const elapsed = Date.now() - lastLoadClickTime;
+            const remaining = Math.max(0, 5000 - elapsed);
+            if (remaining > 0) {
+                setTimeout(() => {
+                    dom.loadBtn.disabled = false;
+                }, remaining);
+            } else {
+                dom.loadBtn.disabled = false;
+            }
         }
     });
 

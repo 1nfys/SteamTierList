@@ -25,7 +25,7 @@ const checkRateLimit = (ip) => {
 
   const ts = usrIpReqs.get(ip).filter(t => t > now - 60000);
   
-  if (ts.length >= 5) {
+  if (ts.length >= 12) {
     usrIpReqs.set(ip, ts);
     return false;
   }

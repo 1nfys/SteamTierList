@@ -42,8 +42,8 @@ export const i18n = {
         errorNoAiResponse: "Не удалось получить ответ от ИИ.",
         errorNoJson: "Не удалось найти JSON-структуру в ответе ИИ.",
         errorAiConnection: "Ошибка подключения к ИИ.",
-        errorRateLimitIp: "⚠️ Превышен лимит запросов с вашего IP (макс. 3 в минуту). Пожалуйста, подождите немного.",
-        errorRateLimitGlobal: "⚠️ Превышен общий лимит запросов сети (макс. 30 в минуту). Пожалуйста, подождите немного."
+        errorRateLimitIp: "⚠️ Превышен лимит запросов с вашего IP. Пожалуйста, подождите немного.",
+        errorRateLimitGlobal: "⚠️ Превышен общий лимит запросов сети. Пожалуйста, подождите немного."
     },
     en: {
         pageTitle: "Steam Tier List Builder",
@@ -88,7 +88,7 @@ export const i18n = {
         errorNoAiResponse: "Failed to get response from AI.",
         errorNoJson: "Failed to find JSON structure in AI response.",
         errorAiConnection: "AI connection error.",
-        errorRateLimitIp: "⚠️ Request limit exceeded from your IP (max 3/min). Please wait a moment.",
-        errorRateLimitGlobal: "⚠️ Global network request limit exceeded (max 30/min). Please wait a moment."
+        errorRateLimitIp: "⚠️ Request limit exceeded from your IP. Please wait a moment.",
+        errorRateLimitGlobal: "⚠️ Global network request limit exceeded. Please wait a moment."
     }
 };
