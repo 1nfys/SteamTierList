@@ -99,8 +99,8 @@ export async function callAI(messages, updateStatusCallback, isUnlimited) {
 
     const models = [
         'mistral-large-2512',
-        'ministral-3b-2512',
-        'ministral-8b-2512'
+        'ministral-8b-2512',
+        'ministral-3b-2512'
     ];
 
     let lastError = null;
