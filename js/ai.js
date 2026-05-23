@@ -51,90 +51,60 @@ export async function fetchStats() {
     return await resp.json();
 }
 
-export async function callAI(messages, updateStatusCallback, isUnlimited) {
-    const selectedModel = isUnlimited ? 'mistral' : 'gemma';
-
-    if (selectedModel === 'gemma') {
-        let limitReached = false;
-        try {
-            const stats = await fetchStats();
-            const energyCost = Math.ceil(state.allGames.length / 25);
-            if (stats.user_used + energyCost > stats.user_limit) limitReached = true;
-        } catch (e) {
-            console.error('Failed to pre-check stats:', e);
-        }
-
-        if (!limitReached) {
-            try {
-                updateStatusCallback(i18n[state.currentLang].aiRequestCf, 'loading');
-                const response = await fetch(`${WORKER_BASE}/api/workers-ai`, {
-                    method: 'POST',
-                    headers: getHeaders(),
-                    body: JSON.stringify({
-                        messages,
-                        game_count: state.allGames.length,
-                        chat_template_kwargs: { enable_thinking: false },
-                        response_format: { type: 'json_object' },
-                        model: '@cf/google/gemma-4-26b-a4b-it',
-                        lang: state.currentLang
-                    })
-                });
-                if (response.ok) {
-                    const data = await response.json();
-                    if (data.choices?.[0]?.message?.content) {
-                        return { content: data.choices[0].message.content, source: 'cf' };
-                    }
-                }
-                updateStatusCallback(i18n[state.currentLang].aiCfUnavailable, 'loading');
-                await new Promise(r => setTimeout(r, 1000));
-            } catch {
-                updateStatusCallback(i18n[state.currentLang].aiCfFailed, 'loading');
-                await new Promise(r => setTimeout(r, 1000));
-            }
-        } else {
-            updateStatusCallback(i18n[state.currentLang].aiCfLimitReached, 'loading');
-            await new Promise(r => setTimeout(r, 1000));
-        }
+export async function callAI(messages, updateStatusCallback) {
+    let limitReached = false;
+    try {
+        const stats = await fetchStats();
+        const energyCost = Math.ceil(state.allGames.length / 25);
+        if (stats.user_used + energyCost > stats.user_limit) limitReached = true;
+    } catch (e) {
+        console.error('Failed to pre-check stats:', e);
     }
 
-    const models = [
-        'mistral-large-2512',
-        'ministral-8b-2512',
-        'ministral-3b-2512'
-    ];
+    if (limitReached) {
+        throw new Error(i18n[state.currentLang].aiCfLimitReached || "Лимит энергии ИИ исчерпан.");
+    }
 
-    let lastError = null;
-    for (let i = 0; i < models.length; i++) {
-        const model = models[i];
-        try {
-            updateStatusCallback(i18n[state.currentLang].aiRequestMistral.replace('{i}', i + 1).replace('{total}', models.length).replace('{model}', model), 'loading');
-            const response = await fetch(`${WORKER_BASE}/api/mistral`, {
-                method: 'POST',
-                headers: getHeaders(),
-                body: JSON.stringify({
-                    messages,
-                    model,
-                    lang: state.currentLang
-                })
-            });
-            if (!response.ok) {
-                const err = await response.json().catch(() => ({}));
-                throw new Error(err.error?.message || `HTTP ${response.status}`);
-            }
+    try {
+        updateStatusCallback(i18n[state.currentLang].aiRequestCf, 'loading');
+        const response = await fetch(`${WORKER_BASE}/api/workers-ai`, {
+            method: 'POST',
+            headers: getHeaders(),
+            body: JSON.stringify({
+                messages,
+                game_count: state.allGames.length,
+                chat_template_kwargs: { enable_thinking: false },
+                response_format: { type: 'json_object' },
+                model: '@cf/google/gemma-4-26b-a4b-it',
+                lang: state.currentLang
+            })
+        });
+        if (response.ok) {
             const data = await response.json();
             if (data.choices?.[0]?.message?.content) {
-                return { content: data.choices[0].message.content, source: 'mistral' };
+                return { content: data.choices[0].message.content, source: 'cf' };
             }
-            throw new Error(i18n[state.currentLang].errorInvalidFormat);
-        } catch (e) {
-            lastError = e.message || e;
-            if (i < models.length - 1) {
-                updateStatusCallback(i18n[state.currentLang].modelOverloaded.replace('{model}', model), 'loading');
-                await new Promise(r => setTimeout(r, 1000));
+        } else {
+            try {
+                const errData = await response.json();
+                if (errData.error === 'Too many requests') {
+                    throw new Error(i18n[state.currentLang].errorRateLimitIp || "Превышен лимит запросов с вашего IP.");
+                } else if (errData.error === 'Global limit reached') {
+                    throw new Error(i18n[state.currentLang].errorRateLimitGlobal || "Превышен общий лимит сети.");
+                } else if (errData.error) {
+                    throw new Error(errData.error);
+                }
+            } catch (jsonErr) {
+                if (response.status === 429) {
+                    throw new Error(i18n[state.currentLang].errorRateLimitIp || "Превышен лимит запросов с вашего IP.");
+                }
+                throw jsonErr;
             }
         }
+        throw new Error(i18n[state.currentLang].aiCfUnavailable || "Workers AI недоступен.");
+    } catch (e) {
+        throw new Error(e.message || i18n[state.currentLang].aiCfFailed || "Сбой Workers AI.");
     }
-    throw new Error(i18n[state.currentLang].errorAllModelsFailed.replace('{error}', lastError));
 }
 
 export function parseAIResponse(aiText) {

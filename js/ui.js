@@ -19,7 +19,6 @@ export function initDOM() {
     dom.aiEnergyChip = document.getElementById('aiEnergyChip');
     dom.controlsContainer = document.getElementById('controlsContainer');
     dom.slider = document.getElementById('gameCountSlider');
-    dom.modelToggleCheckbox = document.getElementById('modelToggleCheckbox');
     dom.langToggleCheckbox = document.getElementById('langToggleCheckbox');
 }
 
@@ -57,8 +56,34 @@ export function updateSliderUI() {
     if (countLabel && i18n[state.currentLang].gamesToLoad) {
         countLabel.textContent = i18n[state.currentLang].gamesToLoad.replace('{count}', count);
     }
-    if (costLabel && i18n[state.currentLang].estimatedCost) {
-        costLabel.textContent = i18n[state.currentLang].estimatedCost.replace('{cost}', cost);
+    if (costLabel) {
+        const isLoaded = (state.allGames && state.allGames.length > 0);
+        if (isLoaded) {
+            const loadedCost = Math.ceil(state.allGames.length / 25);
+            costLabel.textContent = (i18n[state.currentLang].finalCost || "Итоговый расход энергии: {cost} ⚡").replace('{cost}', loadedCost);
+        } else {
+            costLabel.textContent = (i18n[state.currentLang].estimatedCost || "Ожидаемый расход энергии: {cost} ⚡").replace('{cost}', cost);
+        }
+    }
+
+    const warningEl = document.getElementById('sliderWarning');
+    if (warningEl) {
+        if (state.stats) {
+            const remaining = Math.max(0, state.stats.user_limit - state.stats.user_used);
+            if (cost > remaining) {
+                warningEl.textContent = i18n[state.currentLang].insufficientEnergyWarning;
+                warningEl.style.color = '#ef4444';
+                warningEl.style.fontWeight = 'bold';
+            } else {
+                warningEl.textContent = i18n[state.currentLang].sliderWarning;
+                warningEl.style.color = '';
+                warningEl.style.fontWeight = '';
+            }
+        } else {
+            warningEl.textContent = i18n[state.currentLang].sliderWarning;
+            warningEl.style.color = '';
+            warningEl.style.fontWeight = '';
+        }
     }
 }
 
@@ -68,26 +93,18 @@ export async function updateAIResourceUI(forceFetch = false) {
             state.stats = await fetchStats();
         }
         const stats = state.stats;
-        const isUnlimited = dom.modelToggleCheckbox?.checked;
         const remaining = Math.max(0, stats.user_limit - stats.user_used);
         const percent = (remaining / stats.user_limit) * 100;
 
-        if (isUnlimited) {
-            dom.aiResourceText.textContent = `∞ / ${stats.user_limit} ${i18n[state.currentLang].unlimitedText}`;
+        dom.aiResourceText.textContent = `${remaining} / ${stats.user_limit}`;
+        if (remaining > 0) {
             dom.aiResourceText.style.color = 'var(--accent)';
             dom.aiResourceFill.style.background = 'var(--accent)';
-            dom.aiResourceFill.style.width = '100%';
         } else {
-            dom.aiResourceText.textContent = `${remaining} / ${stats.user_limit}`;
-            if (remaining > 0) {
-                dom.aiResourceText.style.color = 'var(--accent)';
-                dom.aiResourceFill.style.background = 'var(--accent)';
-            } else {
-                dom.aiResourceText.style.color = '#ef4444';
-                dom.aiResourceFill.style.background = '#ef4444';
-            }
-            dom.aiResourceFill.style.width = `${percent}%`;
+            dom.aiResourceText.style.color = '#ef4444';
+            dom.aiResourceFill.style.background = '#ef4444';
         }
+        dom.aiResourceFill.style.width = `${percent}%`;
 
         const timeString = i18n[state.currentLang].resetTimeText.replace('{hours}', stats.hours_to_reset);
         const resetTimeText = document.getElementById('resetTimeText');
@@ -101,6 +118,8 @@ export async function updateAIResourceUI(forceFetch = false) {
             globalText.textContent = `${stats.global_used} / ${stats.global_limit}`;
             globalFill.style.width = `${Math.min(100, (stats.global_used / stats.global_limit) * 100)}%`;
         }
+
+        updateSliderUI();
     } catch (e) {
         console.error('Failed to fetch stats:', e);
     }

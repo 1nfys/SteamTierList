@@ -53,6 +53,9 @@
                 <div class="slider-warning" id="sliderWarning" data-i18n="sliderWarning">
                     ⚠️ При увеличении количества игр возрастает время анализа ИИ и расход энергии!
                 </div>
+                <div class="slider-note" id="sliderNote" data-i18n="sliderNote">
+                    * Итоговое количество энергии высчитывается после получения библиотеки.
+                </div>
             </div>
 
             <div class="controls hidden" id="controlsContainer">
@@ -66,24 +69,10 @@
                             <div class="ai-sort-menu-section" style="display: flex; justify-content: center;">
                                 <span class="slider-cost" id="energyCostLabel">Расход энергии: 1 ⚡</span>
                             </div>
-
-
-                            <div class="ai-sort-menu-section">
-                                <div class="model-toggle-row">
-                                    <span class="model-label" data-i18n="modelGemma">Gemma (Лимитный)</span>
-                                    <label class="theme-switch">
-                                        <input type="checkbox" id="modelToggleCheckbox">
-                                        <span class="theme-slider"></span>
-                                    </label>
-                                    <span class="model-label" data-i18n="modelGpt">Mistral AI (Безлимитный)</span>
-                                </div>
-                            </div>
-
-
                             <div class="ai-sort-menu-section limits-row">
                                 <div class="limit-chip" id="aiEnergyChip">
                                     <span class="limit-chip-label" data-i18n="aiEnergy">Энергия ИИ</span>
-                                    <span class="limit-chip-value" id="aiResourceText">20 / 20</span>
+                                    <span class="limit-chip-value" id="aiResourceText">40 / 40</span>
                                     <div class="limit-chip-bar-bg">
                                         <div class="limit-chip-bar-fill" id="aiResourceFill"></div>
                                     </div>
@@ -98,14 +87,9 @@
                                     <span class="limit-chip-reset" id="globalResetTimeText"></span>
                                 </div>
                             </div>
-
-
                             <div class="ai-sort-menu-section warning-note" data-i18n="warningNote">
-                                Примечание: Автоматическое распределение создано исключительно в развлекательных целях
-                                на базе Gemma 4. При исчерпании лимита также используется gpt-oss 120b.
+                                Примечание: Автоматическое распределение создано исключительно в развлекательных целях на базе Gemma 4. Алгоритм может фантазировать и выдавать неточные оценки.
                             </div>
-
-
                             <div class="ai-sort-menu-section">
                                 <button id="aiTierBtn" class="social-btn ai-run-btn" data-i18n="autoSort">⚡ Запустить
                                     сортировку</button>

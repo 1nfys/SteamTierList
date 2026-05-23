@@ -29,13 +29,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    if (dom.modelToggleCheckbox) {
-        dom.modelToggleCheckbox.addEventListener('change', () => {
-            dom.aiEnergyChip?.classList.toggle('disabled', dom.modelToggleCheckbox.checked);
-            updateAIResourceUI();
-        });
-    }
-
     dom.aiSortTrigger.addEventListener('click', (e) => {
         e.stopPropagation();
         dom.aiSortDropdown.classList.toggle('open');
@@ -50,7 +43,12 @@ document.addEventListener('DOMContentLoaded', () => {
     checkWorkerStatus();
     updateAIResourceUI(true);
 
+    let lastLoadClickTime = 0;
     dom.loadBtn.addEventListener('click', async () => {
+        const now = Date.now();
+        if (now - lastLoadClickTime < 12000) return;
+        lastLoadClickTime = now;
+
         const rawInput = dom.steamIdInput.value.trim();
         if (!rawInput) { setStatus(i18n[state.currentLang].statusPleaseEnter, 'error'); return; }
 
@@ -62,6 +60,16 @@ document.addEventListener('DOMContentLoaded', () => {
             setStatus(i18n[state.currentLang].statusLoading, 'loading');
 
             const response = await fetch(`${WORKER_BASE}/api/steam-games?steamid=${steamId}`, { headers: getHeaders() });
+            if (response.status === 429) {
+                let errMsg = i18n[state.currentLang].errorRateLimitIp || "Превышен лимит запросов.";
+                try {
+                    const errData = await response.json();
+                    if (errData.error === 'Global limit reached') {
+                        errMsg = i18n[state.currentLang].errorRateLimitGlobal || "Превышен общий лимит сети.";
+                    }
+                } catch (_) {}
+                throw new Error(errMsg);
+            }
             if (!response.ok) throw new Error(i18n[state.currentLang].errorNetwork);
 
             const data = await response.json();
@@ -75,12 +83,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
             renderGames(state.allGames);
             setStatus(i18n[state.currentLang].statusSuccess.replace('{count}', state.allGames.length), 'success');
+            updateSliderUI();
             dom.controlsContainer.classList.remove('hidden');
             dom.exportBtn.disabled = false;
             dom.aiTierBtn.disabled = false;
         } catch (error) {
             console.error(error);
-            setStatus(i18n[state.currentLang].statusErrorLoad, 'error');
+            setStatus(error.message || i18n[state.currentLang].statusErrorLoad, 'error');
         } finally {
             dom.loadBtn.disabled = false;
         }
@@ -105,8 +114,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             ];
 
-            const isUnlimited = dom.modelToggleCheckbox?.checked;
-            const aiResult = await callAI(messages, setStatus, isUnlimited);
+            const aiResult = await callAI(messages, setStatus);
             if (!aiResult?.content) throw new Error(i18n[state.currentLang].errorNoAiResponse);
 
             const { tierMap, reasonsMap } = parseAIResponse(aiResult.content);

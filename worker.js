@@ -1,6 +1,17 @@
 const G_NET_LIMIT = 1000;
-const USR_DAY_LIM = 20;
+const USR_DAY_LIM = 40;
 const usrIpReqs = new Map();
+let globalReqs = [];
+
+const checkGlobalRateLimit = () => {
+  const now = Date.now();
+  globalReqs = globalReqs.filter(t => t > now - 60000);
+  if (globalReqs.length >= 30) {
+    return false;
+  }
+  globalReqs.push(now);
+  return true;
+};
 
 const getIp = (req) => {
   return req.headers.get('cf-connecting-ip') || req.headers.get('x-forwarded-for') || '127.0.0.1';
@@ -14,7 +25,7 @@ const checkRateLimit = (ip) => {
 
   const ts = usrIpReqs.get(ip).filter(t => t > now - 60000);
   
-  if (ts.length >= 3) {
+  if (ts.length >= 5) {
     usrIpReqs.set(ip, ts);
     return false;
   }
@@ -35,7 +46,11 @@ const getUsage = async (kv, key) => {
 
 const putUsage = async (kv, key, val) => {
   try {
-    await kv.put(key, val.toString(), { expirationTtl: 86400 });
+    const now = Date.now();
+    const tomorrow = new Date();
+    tomorrow.setUTCHours(24, 0, 0, 0);
+    const ttl = Math.max(60, Math.ceil((tomorrow.getTime() - now) / 1000));
+    await kv.put(key, val.toString(), { expirationTtl: ttl });
   } catch (e) {
   }
 };
@@ -61,6 +76,13 @@ export default {
 
     if (req.method === 'OPTIONS') {
       return new Response(null, { headers: corsHeaders });
+    }
+
+    if (!checkGlobalRateLimit()) {
+      return new Response(JSON.stringify({ error: 'Global limit reached' }), {
+        status: 429,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
     }
 
     if (origin === 'http://localhost:3000' && decodeURIComponent(req.headers.get('x-local-password') || '') !== env.LOCAL_PASSWORD) {
@@ -113,6 +135,12 @@ export default {
       });
     }
 
+    if (['/api/steam-resolve', '/api/steam-games', '/api/workers-ai'].includes(path)) {
+      if (!checkRateLimit(ip)) {
+        return jsonRes({ error: 'Too many requests' }, 429);
+      }
+    }
+
     if (path === '/api/steam-resolve') {
       const v = url.searchParams.get('vanityurl');
       if (!v) return jsonRes({ error: 'Missing vanityurl' }, 400);
@@ -125,10 +153,7 @@ export default {
       return fetchJson(`https://api.steampowered.com/IPlayerService/GetOwnedGames/v0001/?key=${env.STEAM_API_KEY || ''}&steamid=${s}&include_appinfo=1&format=json`);
     }
 
-    if ((path === '/api/workers-ai' || path === '/api/mistral') && req.method === 'POST') {
-      if (!checkRateLimit(ip)) {
-        return jsonRes({ error: 'Too many requests' }, 429);
-      }
+    if (path === '/api/workers-ai' && req.method === 'POST') {
 
       let body;
       try {
@@ -137,69 +162,44 @@ export default {
         return jsonRes({ error: 'Invalid JSON body' }, 400);
       }
 
-      if (path === '/api/workers-ai') {
-        if (!env.LIMITS_KV) {
-          return jsonRes({ error: 'CRITICAL: LIMITS_KV database is not bound in Cloudflare Settings! Please follow step 6 in README.' }, 500);
-        }
-        const cost = Math.ceil((body.game_count || 25) / 25);
-        const userUsed = await getUsage(env.LIMITS_KV, userKey);
-        const globalUsed = await getUsage(env.LIMITS_KV, globalKey);
-        
-        if (userUsed + cost > USR_DAY_LIM) {
-          return jsonRes({ error: 'User daily limit reached' }, 429);
-        }
-        if (!env.AI) {
-          return jsonRes({ error: 'Workers AI not configured' }, 503);
-        }
-        
-        await putUsage(env.LIMITS_KV, userKey, userUsed + cost);
-        await putUsage(env.LIMITS_KV, globalKey, globalUsed + cost);
-
-        try {
-          const runOpts = { 
-            messages: body.messages, 
-            chat_template_kwargs: { enable_thinking: false } 
-          };
-          
-          if (body.max_tokens) runOpts.max_tokens = body.max_tokens;
-          if (body.response_format) runOpts.response_format = body.response_format;
-          
-          const r = await env.AI.run(body.model || '@cf/google/gemma-4-26b-a4b-it', runOpts);
-          const c = r.choices?.[0]?.message?.content || 
-                    r.choices?.[0]?.message?.reasoning || 
-                    r.response || 
-                    r.result?.choices?.[0]?.message?.content || 
-                    r.result?.response || 
-                    (typeof r.result === 'string' ? r.result : null) || 
-                    JSON.stringify(r.result || r);
-                    
-          return jsonRes({ choices: [{ message: { content: c } }] });
-        } catch (e) {
-          return jsonRes({ error: e.message }, 500);
-        }
+      if (!env.LIMITS_KV) {
+        return jsonRes({ error: 'CRITICAL: LIMITS_KV database is not bound in Cloudflare Settings! Please follow step 6 in README.' }, 500);
       }
+      const cost = Math.ceil((body.game_count || 25) / 25);
+      const userUsed = await getUsage(env.LIMITS_KV, userKey);
+      const globalUsed = await getUsage(env.LIMITS_KV, globalKey);
+      
+      if (userUsed + cost > USR_DAY_LIM) {
+        return jsonRes({ error: 'User daily limit reached' }, 429);
+      }
+      if (!env.AI) {
+        return jsonRes({ error: 'Workers AI not configured' }, 503);
+      }
+      
+      await putUsage(env.LIMITS_KV, userKey, userUsed + cost);
+      await putUsage(env.LIMITS_KV, globalKey, globalUsed + cost);
 
-      if (path === '/api/mistral') {
-        try {
-          const { messages, model, response_format, temperature, max_tokens } = body;
-          const cleanBody = { messages, model };
-          if (response_format) cleanBody.response_format = response_format;
-          if (temperature !== undefined) cleanBody.temperature = temperature;
-          if (max_tokens !== undefined) cleanBody.max_tokens = max_tokens;
-
-          const r = await fetch('https://api.mistral.ai/v1/chat/completions', {
-            method: 'POST',
-            headers: { 
-              'Content-Type': 'application/json', 
-              'Accept': 'application/json',
-              'Authorization': `Bearer ${env.MISTRAL_API_KEY || ''}`
-            },
-            body: JSON.stringify(cleanBody)
-          });
-          return jsonRes(await r.json(), r.status);
-        } catch (e) {
-          return jsonRes({ error: e.message }, 500);
-        }
+      try {
+        const runOpts = { 
+          messages: body.messages, 
+          chat_template_kwargs: { enable_thinking: false } 
+        };
+        
+        if (body.max_tokens) runOpts.max_tokens = body.max_tokens;
+        if (body.response_format) runOpts.response_format = body.response_format;
+        
+        const r = await env.AI.run(body.model || '@cf/google/gemma-4-26b-a4b-it', runOpts);
+        const c = r.choices?.[0]?.message?.content || 
+                  r.choices?.[0]?.message?.reasoning || 
+                  r.response || 
+                  r.result?.choices?.[0]?.message?.content || 
+                  r.result?.response || 
+                  (typeof r.result === 'string' ? r.result : null) || 
+                  JSON.stringify(r.result || r);
+                  
+        return jsonRes({ choices: [{ message: { content: c } }] });
+      } catch (e) {
+        return jsonRes({ error: e.message }, 500);
       }
     }
 
