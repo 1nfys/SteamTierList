@@ -59,7 +59,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const steamId = await resolveSteamId(rawInput);
             setStatus(i18n[state.currentLang].statusLoading, 'loading');
 
-            const response = await fetch(`${WORKER_BASE}/api/steam-games?steamid=${steamId}`, { headers: getHeaders() });
+            const includeFree = (dom.freeGamesCheckbox && dom.freeGamesCheckbox.checked) ? 1 : 0;
+            const response = await fetch(`${WORKER_BASE}/api/steam-games?steamid=${steamId}&include_free=${includeFree}`, { headers: getHeaders() });
             if (response.status === 429) {
                 let errMsg = i18n[state.currentLang].errorRateLimitIp || "Превышен лимит запросов.";
                 try {
@@ -169,11 +170,11 @@ document.addEventListener('DOMContentLoaded', () => {
         const targetElement = document.querySelector('.tier-list-container');
         if (!targetElement) return;
 
-        html2canvas(targetElement, { backgroundColor: '#0c0c0e', scale: 2, useCORS: true, logging: false })
+        html2canvas(targetElement, { backgroundColor: '#0c0c0e', scale: 1.5, useCORS: true, logging: false })
             .then(canvas => {
                 const link = document.createElement('a');
-                link.download = 'steam-tier-list.png';
-                link.href = canvas.toDataURL('image/png');
+                link.download = 'steam-tier-list.jpg';
+                link.href = canvas.toDataURL('image/jpeg', 0.85);
                 link.click();
                 setStatus('Изображение успешно скачано!', 'success');
                 dom.exportBtn.disabled = false;

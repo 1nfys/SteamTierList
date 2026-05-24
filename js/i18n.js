@@ -2,6 +2,7 @@ export const i18n = {
     ru: {
         pageTitle: "Конструктор тир-листов Steam",
         gamesToLoad: "Игр для загрузки: {count}",
+        includeFreeGames: "Включая бесплатные",
         estimatedCost: "Ожидаемый расход энергии: {cost} ⚡",
         finalCost: "Итоговый расход энергии: {cost} ⚡",
         sliderWarning: "⚠️ При увеличении количества игр возрастает время анализа ИИ и расход энергии!",
@@ -48,6 +49,7 @@ export const i18n = {
     en: {
         pageTitle: "Steam Tier List Builder",
         gamesToLoad: "Games to load: {count}",
+        includeFreeGames: "Include free games",
         estimatedCost: "Estimated energy cost: {cost} ⚡",
         finalCost: "Final energy cost: {cost} ⚡",
         sliderWarning: "⚠️ Increasing the game count increases AI analysis time and energy consumption!",

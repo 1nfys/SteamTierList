@@ -1,6 +1,6 @@
 const G_NET_LIMIT = 1000;
 const USR_DAY_LIM = 40;
-const usrIpReqs = new Map();
+const clientReqs = new Map();
 let globalReqs = [];
 
 const checkGlobalRateLimit = () => {
@@ -13,25 +13,25 @@ const checkGlobalRateLimit = () => {
   return true;
 };
 
-const getIp = (req) => {
-  return req.headers.get('cf-connecting-ip') || req.headers.get('x-forwarded-for') || '127.0.0.1';
+const getClientId = (req) => {
+  return req.headers.get('x-browser-fingerprint') || 'no_fingerprint';
 };
 
-const checkRateLimit = (ip) => {
+const checkRateLimit = (clientId) => {
   const now = Date.now();
-  if (!usrIpReqs.has(ip)) {
-    usrIpReqs.set(ip, []);
+  if (!clientReqs.has(clientId)) {
+    clientReqs.set(clientId, []);
   }
 
-  const ts = usrIpReqs.get(ip).filter(t => t > now - 60000);
+  const ts = clientReqs.get(clientId).filter(t => t > now - 60000);
   
   if (ts.length >= 12) {
-    usrIpReqs.set(ip, ts);
+    clientReqs.set(clientId, ts);
     return false;
   }
   
   ts.push(now);
-  usrIpReqs.set(ip, ts);
+  clientReqs.set(clientId, ts);
   return true;
 };
 
@@ -63,7 +63,7 @@ export default {
     const corsHeaders = {
       'Access-Control-Allow-Origin': origin && isAllowed ? origin : 'https://1nfys.github.io',
       'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization, x-local-password',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization, x-local-password, x-browser-fingerprint',
       'Access-Control-Max-Age': '86400'
     };
 
@@ -94,7 +94,7 @@ export default {
 
     const url = new URL(req.url);
     const path = url.pathname.replace(/\/+/g, '/');
-    const ip = getIp(req);
+    const ip = getClientId(req);
     const dateStr = new Date().toISOString().split('T')[0];
     const userKey = `user_${ip}_${dateStr}`;
     const globalKey = `global_${dateStr}`;
@@ -149,8 +149,11 @@ export default {
 
     if (path === '/api/steam-games') {
       const s = url.searchParams.get('steamid');
+      const incFree = url.searchParams.get('include_free') === '1';
       if (!s) return jsonRes({ error: 'Missing steamid' }, 400);
-      return fetchJson(`https://api.steampowered.com/IPlayerService/GetOwnedGames/v0001/?key=${env.STEAM_API_KEY || ''}&steamid=${s}&include_appinfo=1&format=json`);
+      let apiTgt = `https://api.steampowered.com/IPlayerService/GetOwnedGames/v0001/?key=${env.STEAM_API_KEY || ''}&steamid=${s}&include_appinfo=1&format=json`;
+      if (incFree) apiTgt += '&include_played_free_games=1&include_free_sub=1';
+      return fetchJson(apiTgt);
     }
 
     if (path === '/api/workers-ai' && req.method === 'POST') {

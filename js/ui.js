@@ -20,6 +20,7 @@ export function initDOM() {
     dom.controlsContainer = document.getElementById('controlsContainer');
     dom.slider = document.getElementById('gameCountSlider');
     dom.langToggleCheckbox = document.getElementById('langToggleCheckbox');
+    dom.freeGamesCheckbox = document.getElementById('freeGamesCheckbox');
 }
 
 export function setStatus(msg, type) {
