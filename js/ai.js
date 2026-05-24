@@ -1,5 +1,5 @@
-import { WORKER_BASE, state, getHeaders, TURNSTILE_SITEKEY } from './config.js';
-import { i18n } from './i18n.js';
+import { WORKER_BASE, state, getHeaders, TURNSTILE_SITEKEY } from './config.js?v=4';
+import { i18n } from './i18n.js?v=4';
 
 export function parseMarkdownFallback(text) {
     const tierMap = { s: [], a: [], b: [], c: [], d: [], f: [] };

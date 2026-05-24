@@ -1,6 +1,6 @@
-import { state, WORKER_BASE, getHeaders } from './config.js';
-import { i18n } from './i18n.js';
-import { fetchStats } from './ai.js';
+import { state, WORKER_BASE, getHeaders } from './config.js?v=4';
+import { i18n } from './i18n.js?v=4';
+import { fetchStats } from './ai.js?v=4';
 
 export const dom = {};
 

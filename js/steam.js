@@ -1,5 +1,5 @@
-import { WORKER_BASE, state, getHeaders } from './config.js';
-import { i18n } from './i18n.js';
+import { WORKER_BASE, state, getHeaders } from './config.js?v=4';
+import { i18n } from './i18n.js?v=4';
 
 export async function resolveSteamId(input) {
     input = input.trim().replace(/\/$/, '');

@@ -15,7 +15,7 @@
 
 *   **Загрузка библиотеки Steam:** Получение списка игр пользователя по Steam ID или ссылке на профиль.
 *   **Ручная сортировка:** Интерфейс drag-and-drop для распределения игр по категориям (S, A, B, C, D, F).
-*   **Автоматическая сортировка (ИИ):** Возможность автоматического распределения игр по тирам с помощью Cloudflare Workers AI (модель Gemma 4) или резервных моделей через Mistral AI (например, Mistral Large). Нейросеть также генерирует краткий вердикт для каждой игры.
+*   **Автоматическая сортировка (ИИ):** Возможность автоматического распределения игр по тирам с помощью Cloudflare Workers AI (модель Gemma 4). Нейросеть также генерирует краткий вердикт для каждой игры.
 *   **Экспорт:** Сохранение готового тир-листа в формате изображения (PNG).
 *   **Мультиязычность:** Поддержка русского и английского интерфейса.
 
@@ -111,7 +111,7 @@ The project consists of a client side (Vanilla JS/HTML/CSS Frontend) and a serve
 
 *   **Load Steam Library:** Retrieve a user's game list via Steam ID or profile link.
 *   **Manual Sorting:** Drag-and-drop interface for distributing games into categories (S, A, B, C, D, F).
-*   **Automated Sorting (AI):** Automatically distribute games into tiers using Cloudflare Workers AI (Gemma 4 model) or fallback models via Mistral AI (e.g. Mistral Large). The AI also generates a short verdict for each game.
+*   **Automated Sorting (AI):** Automatically distribute games into tiers using Cloudflare Workers AI (Gemma 4 model). The AI also generates a short verdict for each game.
 *   **Export:** Save the completed tier list as an image (PNG).
 *   **Multilingual:** Supports Russian and English interfaces.
 

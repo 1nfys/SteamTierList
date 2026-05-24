@@ -171,13 +171,13 @@ export default {
       if (!isLocal) {
         const token = body.turnstile_token;
         if (!token) return jsonRes({ error: 'Отсутствует токен безопасности (Turnstile)' }, 403);
-        
+
         const secret = env.TURNSTILE_SECRET || '1x0000000000000000000000000000000AA';
         const formData = new FormData();
         formData.append('secret', secret);
         formData.append('response', token);
         formData.append('remoteip', ip);
-        
+
         try {
           const tsRes = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
             method: 'POST',
