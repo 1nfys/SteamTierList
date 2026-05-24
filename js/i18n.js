@@ -44,7 +44,10 @@ export const i18n = {
         errorNoJson: "Не удалось найти JSON-структуру в ответе ИИ.",
         errorAiConnection: "Ошибка подключения к ИИ.",
         errorRateLimitIp: "⚠️ Превышен лимит запросов с вашего IP. Пожалуйста, подождите немного.",
-        errorRateLimitGlobal: "⚠️ Превышен общий лимит запросов сети. Пожалуйста, подождите немного."
+        errorRateLimitGlobal: "⚠️ Превышен общий лимит запросов сети. Пожалуйста, подождите немного.",
+        tsChecking: "Проверка безопасности...",
+        tsScriptMissing: "Скрипт защиты (Turnstile) не загрузился. Проверьте блокировщики рекламы.",
+        tsFailed: "Ошибка проверки безопасности (Turnstile)."
     },
     en: {
         pageTitle: "Steam Tier List Builder",
@@ -91,6 +94,9 @@ export const i18n = {
         errorNoJson: "Failed to find JSON structure in AI response.",
         errorAiConnection: "AI connection error.",
         errorRateLimitIp: "⚠️ Request limit exceeded from your IP. Please wait a moment.",
-        errorRateLimitGlobal: "⚠️ Global network request limit exceeded. Please wait a moment."
+        errorRateLimitGlobal: "⚠️ Global network request limit exceeded. Please wait a moment.",
+        tsChecking: "Security check...",
+        tsScriptMissing: "Security script (Turnstile) failed to load. Check your adblocker.",
+        tsFailed: "Security check failed (Turnstile)."
     }
 };

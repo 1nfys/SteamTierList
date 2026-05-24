@@ -164,10 +164,20 @@ export function renderGames(gamesList) {
         gameEl.className = 'game-item';
         gameEl.draggable = true;
         gameEl.id = `game-${game.appid}`;
-        gameEl.innerHTML = `
-            <img src="https://steamcdn-a.akamaihd.net/steam/apps/${game.appid}/capsule_184x69.jpg" alt="${game.name}" onerror="this.src='https://steamcdn-a.akamaihd.net/steam/apps/${game.appid}/header.jpg'; this.onerror=null;">
-            <div class="game-title">${game.name}</div>
-        `;
+        const img = document.createElement('img');
+        img.src = `https://steamcdn-a.akamaihd.net/steam/apps/${game.appid}/capsule_184x69.jpg`;
+        img.alt = game.name;
+        img.onerror = function() {
+            this.onerror = null;
+            this.src = `https://steamcdn-a.akamaihd.net/steam/apps/${game.appid}/header.jpg`;
+        };
+
+        const title = document.createElement('div');
+        title.className = 'game-title';
+        title.textContent = game.name;
+
+        gameEl.appendChild(img);
+        gameEl.appendChild(title);
         gameEl.addEventListener('dragstart', handleDragStart);
         gameEl.addEventListener('dragend', handleDragEnd);
         fragment.appendChild(gameEl);

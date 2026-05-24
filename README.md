@@ -40,9 +40,10 @@
 3. Нажмите **Edit code**, скопируйте всё содержимое локального файла `worker.js` и вставьте в редактор кода Cloudflare (заменив стандартный код).
    * **Важно:** В коде `worker.js` найдите ссылки на `https://1nfys.github.io` (строки CORS) и замените их на ваш собственный домен (например, вашу ссылку на GitHub Pages). Иначе воркер будет блокировать запросы с вашего сайта!
    Затем нажмите **Deploy** (сохранить).
-4. Перейдите в настройки созданного воркера: **Settings** -> **Variables and Secrets**. Добавьте две переменные (тип Secret):
+4. Перейдите в настройки созданного воркера: **Settings** -> **Variables and Secrets**. Добавьте три переменные (тип Secret):
    *   `STEAM_API_KEY`
    *   `LOCAL_PASSWORD` *(пароль для защиты локальной версии от сторонних запросов)*
+   *   `TURNSTILE_SECRET` *(Секретный ключ от вашего виджета Cloudflare Turnstile)*
 5. Перейдите в левом меню в раздел **Storage & Databases** -> **KV** и создайте пространство имен (Create namespace) с любым именем.
 6. В настройках воркера перейдите в **Settings** -> **Bindings**.
    * Добавьте привязку **Workers AI**: Variable name: `AI`
@@ -71,6 +72,7 @@
 4. Добавьте необходимые секреты (API ключи) в Cloudflare:
    `wrangler secret put STEAM_API_KEY`
    `wrangler secret put LOCAL_PASSWORD`
+   `wrangler secret put TURNSTILE_SECRET`
 5. Создайте базу данных KV для лимитов:
    `wrangler kv:namespace create LIMITS_KV`
    *(Вставьте полученный ID в `wrangler.toml` вместо "ВАШ_KV_ID")*
@@ -80,7 +82,8 @@
 #### 2. Настройка Frontend
 
 1. Откройте файл `js/config.js`.
-2. Убедитесь, что константа `CLOUDFLARE_WORKER_URL` указывает на ваш локальный воркер (например, `http://localhost:8787/`) или на ваш опубликованный рабочий воркер в Cloudflare.
+2. Вставьте ваш публичный ключ **Site Key** от Cloudflare Turnstile в константу `TURNSTILE_SITEKEY`.
+3. Убедитесь, что константа `CLOUDFLARE_WORKER_URL` указывает на ваш локальный воркер (например, `http://localhost:8787/`) или на ваш опубликованный рабочий воркер в Cloudflare.
 3. Запустите локальный веб-сервер в корневой папке проекта. Проще всего использовать `serve`:
    `npx serve`
 4. Откройте предложенный адрес (обычно `http://localhost:3000`) в браузере.
@@ -133,9 +136,10 @@ You can deploy the worker in two ways: via the Cloudflare web interface (easiest
 3. Click **Edit code**, copy the entire contents of the local `worker.js` file, paste it into the Cloudflare code editor (replacing the default code).
    * **Important:** In the `worker.js` code, find the references to `https://1nfys.github.io` (the CORS allowed origins) and replace them with your own domain (e.g., your GitHub Pages URL). Otherwise, the worker will block requests from your site!
    Click **Deploy** (save).
-4. Go to the worker settings: **Settings** -> **Variables and Secrets**. Add two variables (type Secret):
+4. Go to the worker settings: **Settings** -> **Variables and Secrets**. Add three variables (type Secret):
    *   `STEAM_API_KEY`
    *   `LOCAL_PASSWORD` *(password to protect your local worker from third-party requests)*
+   *   `TURNSTILE_SECRET` *(Secret key from your Cloudflare Turnstile widget)*
 5. In the left menu, go to **Storage & Databases** -> **KV** and create a new namespace.
 6. In the worker settings, go to **Settings** -> **Bindings**:
    * Add a **Workers AI** binding: Variable name: `AI`
@@ -164,6 +168,7 @@ You will need a Cloudflare account and Node.js installed.
 4. Add the required secrets:
    `wrangler secret put STEAM_API_KEY`
    `wrangler secret put LOCAL_PASSWORD`
+   `wrangler secret put TURNSTILE_SECRET`
 5. Create a KV namespace for rate limits:
    `wrangler kv:namespace create LIMITS_KV`
    *(Paste the generated ID into `wrangler.toml` replacing "YOUR_KV_ID")*
@@ -173,7 +178,8 @@ You will need a Cloudflare account and Node.js installed.
 #### 2. Frontend Setup
 
 1. Open the file `js/config.js`.
-2. Ensure the `CLOUDFLARE_WORKER_URL` constant points to your local worker (e.g., `http://localhost:8787/`) or your deployed Cloudflare worker URL.
+2. Insert your public **Site Key** from Cloudflare Turnstile into the `TURNSTILE_SITEKEY` constant.
+3. Ensure the `CLOUDFLARE_WORKER_URL` constant points to your local worker (e.g., `http://localhost:8787/`) or your deployed Cloudflare worker URL.
 3. Run a local web server in the project root. The easiest way is using `serve`: 
    `npx serve`
 4. Open the provided address (usually `http://localhost:3000`) in your browser.

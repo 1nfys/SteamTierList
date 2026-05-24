@@ -1,4 +1,4 @@
-const G_NET_LIMIT = 1000;
+const G_NET_LIMIT = 500;
 const USR_DAY_LIM = 40;
 const clientReqs = new Map();
 let globalReqs = [];
@@ -14,7 +14,7 @@ const checkGlobalRateLimit = () => {
 };
 
 const getClientId = (req) => {
-  return req.headers.get('x-browser-fingerprint') || 'no_fingerprint';
+  return req.headers.get('cf-connecting-ip') || 'unknown_ip';
 };
 
 const checkRateLimit = (clientId) => {
@@ -24,12 +24,12 @@ const checkRateLimit = (clientId) => {
   }
 
   const ts = clientReqs.get(clientId).filter(t => t > now - 60000);
-  
+
   if (ts.length >= 12) {
     clientReqs.set(clientId, ts);
     return false;
   }
-  
+
   ts.push(now);
   clientReqs.set(clientId, ts);
   return true;
@@ -59,18 +59,18 @@ export default {
   async fetch(req, env) {
     const origin = req.headers.get('Origin') || '';
     const isAllowed = !origin || ['https://1nfys.github.io', 'http://localhost:3000'].includes(origin);
-    
+
     const corsHeaders = {
-      'Access-Control-Allow-Origin': origin && isAllowed ? origin : 'https://1nfys.github.io',
+      'Access-Control-Allow-Origin': isAllowed ? origin : 'https://1nfys.github.io',
       'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization, x-local-password, x-browser-fingerprint',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization, x-local-password',
       'Access-Control-Max-Age': '86400'
     };
 
-    if (!isAllowed) {
-      return new Response(JSON.stringify({ error: 'Access forbidden' }), { 
-        status: 403, 
-        headers: { 'Content-Type': 'application/json' } 
+    if (!isAllowed && origin !== 'https://1nfys.github.io') {
+      return new Response(JSON.stringify({ error: 'Access forbidden' }), {
+        status: 403,
+        headers: { 'Content-Type': 'application/json' }
       });
     }
 
@@ -86,9 +86,9 @@ export default {
     }
 
     if (origin === 'http://localhost:3000' && decodeURIComponent(req.headers.get('x-local-password') || '') !== env.LOCAL_PASSWORD) {
-      return new Response(JSON.stringify({ error: 'Unauthorized local access' }), { 
-        status: 401, 
-        headers: corsHeaders 
+      return new Response(JSON.stringify({ error: 'Unauthorized local access' }), {
+        status: 401,
+        headers: corsHeaders
       });
     }
 
@@ -100,9 +100,9 @@ export default {
     const globalKey = `global_${dateStr}`;
 
     const jsonRes = (data, s = 200) => {
-      return new Response(JSON.stringify(data), { 
-        status: s, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      return new Response(JSON.stringify(data), {
+        status: s,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     };
 
@@ -121,7 +121,7 @@ export default {
       }
       const now = new Date();
       const nextMidnight = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1));
-      
+
       const globalUsed = await getUsage(env.LIMITS_KV, globalKey);
       const userUsed = await getUsage(env.LIMITS_KV, userKey);
 
@@ -151,7 +151,8 @@ export default {
       const s = url.searchParams.get('steamid');
       const incFree = url.searchParams.get('include_free') === '1';
       if (!s) return jsonRes({ error: 'Missing steamid' }, 400);
-      let apiTgt = `https://api.steampowered.com/IPlayerService/GetOwnedGames/v0001/?key=${env.STEAM_API_KEY || ''}&steamid=${s}&include_appinfo=1&format=json`;
+      const safeId = encodeURIComponent(s);
+      let apiTgt = `https://api.steampowered.com/IPlayerService/GetOwnedGames/v0001/?key=${env.STEAM_API_KEY || ''}&steamid=${safeId}&include_appinfo=1&format=json`;
       if (incFree) apiTgt += '&include_played_free_games=1&include_free_sub=1';
       return fetchJson(apiTgt);
     }
@@ -165,41 +166,67 @@ export default {
         return jsonRes({ error: 'Invalid JSON body' }, 400);
       }
 
+      const isLocal = origin === 'http://localhost:3000' && decodeURIComponent(req.headers.get('x-local-password') || '') === env.LOCAL_PASSWORD;
+
+      if (!isLocal) {
+        const token = body.turnstile_token;
+        if (!token) return jsonRes({ error: 'Отсутствует токен безопасности (Turnstile)' }, 403);
+        
+        const secret = env.TURNSTILE_SECRET || '1x0000000000000000000000000000000AA';
+        const formData = new FormData();
+        formData.append('secret', secret);
+        formData.append('response', token);
+        formData.append('remoteip', ip);
+        
+        try {
+          const tsRes = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
+            method: 'POST',
+            body: formData
+          });
+          const tsOutcome = await tsRes.json();
+          if (!tsOutcome.success) {
+            return jsonRes({ error: 'Проверка безопасности не пройдена' }, 403);
+          }
+        } catch (e) {
+          return jsonRes({ error: 'Ошибка верификации Turnstile' }, 500);
+        }
+      }
+
       if (!env.LIMITS_KV) {
         return jsonRes({ error: 'CRITICAL: LIMITS_KV database is not bound in Cloudflare Settings! Please follow step 6 in README.' }, 500);
       }
       const cost = Math.ceil((body.game_count || 25) / 25);
       const userUsed = await getUsage(env.LIMITS_KV, userKey);
       const globalUsed = await getUsage(env.LIMITS_KV, globalKey);
-      
+
       if (userUsed + cost > USR_DAY_LIM) {
         return jsonRes({ error: 'User daily limit reached' }, 429);
       }
       if (!env.AI) {
         return jsonRes({ error: 'Workers AI not configured' }, 503);
       }
-      
+
       await putUsage(env.LIMITS_KV, userKey, userUsed + cost);
       await putUsage(env.LIMITS_KV, globalKey, globalUsed + cost);
 
       try {
-        const runOpts = { 
-          messages: body.messages, 
-          chat_template_kwargs: { enable_thinking: false } 
+        const runOpts = {
+          messages: body.messages,
+          chat_template_kwargs: { enable_thinking: false }
         };
-        
+
         if (body.max_tokens) runOpts.max_tokens = body.max_tokens;
         if (body.response_format) runOpts.response_format = body.response_format;
-        
+
         const r = await env.AI.run(body.model || '@cf/google/gemma-4-26b-a4b-it', runOpts);
-        const c = r.choices?.[0]?.message?.content || 
-                  r.choices?.[0]?.message?.reasoning || 
-                  r.response || 
-                  r.result?.choices?.[0]?.message?.content || 
-                  r.result?.response || 
-                  (typeof r.result === 'string' ? r.result : null) || 
-                  JSON.stringify(r.result || r);
-                  
+        const c = r.choices?.[0]?.message?.content ||
+          r.choices?.[0]?.message?.reasoning ||
+          r.response ||
+          r.result?.choices?.[0]?.message?.content ||
+          r.result?.response ||
+          (typeof r.result === 'string' ? r.result : null) ||
+          JSON.stringify(r.result || r);
+
         return jsonRes({ choices: [{ message: { content: c } }] });
       } catch (e) {
         return jsonRes({ error: e.message }, 500);

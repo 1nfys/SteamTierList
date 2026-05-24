@@ -1,4 +1,4 @@
-import { WORKER_BASE, state, getHeaders } from './config.js';
+import { WORKER_BASE, state, getHeaders, TURNSTILE_SITEKEY } from './config.js';
 import { i18n } from './i18n.js';
 
 export function parseMarkdownFallback(text) {
@@ -66,6 +66,37 @@ export async function callAI(messages, updateStatusCallback) {
     }
 
     try {
+        let turnstileToken = 'bypass';
+        const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+        
+        if (!isLocal) {
+            updateStatusCallback(i18n[state.currentLang].tsChecking || "Проверка безопасности...", 'loading');
+            const container = document.getElementById('turnstile-container');
+            if (container) container.style.display = 'flex';
+            
+            turnstileToken = await new Promise((resolve, reject) => {
+                if (typeof turnstile === 'undefined') {
+                    reject(new Error(i18n[state.currentLang].tsScriptMissing || "Скрипт защиты не загрузился."));
+                    return;
+                }
+                
+                if (window.turnstileWidgetId !== undefined) {
+                    turnstile.reset(window.turnstileWidgetId);
+                }
+                
+                window.turnstileWidgetId = turnstile.render('#turnstile-container', {
+                    sitekey: TURNSTILE_SITEKEY,
+                    callback: function(token) { 
+                        if (container) container.style.display = 'none';
+                        resolve(token); 
+                    },
+                    "error-callback": function() { 
+                        reject(new Error(i18n[state.currentLang].tsFailed || "Ошибка проверки безопасности (Turnstile).")); 
+                    }
+                });
+            });
+        }
+
         updateStatusCallback(i18n[state.currentLang].aiRequestCf, 'loading');
         const response = await fetch(`${WORKER_BASE}/api/workers-ai`, {
             method: 'POST',
@@ -76,7 +107,8 @@ export async function callAI(messages, updateStatusCallback) {
                 chat_template_kwargs: { enable_thinking: false },
                 response_format: { type: 'json_object' },
                 model: '@cf/google/gemma-4-26b-a4b-it',
-                lang: state.currentLang
+                lang: state.currentLang,
+                turnstile_token: turnstileToken
             })
         });
         if (response.ok) {
