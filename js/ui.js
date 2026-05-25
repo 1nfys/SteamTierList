@@ -1,6 +1,6 @@
-import { state, WORKER_BASE, getHeaders } from './config.js?v=4';
-import { i18n } from './i18n.js?v=4';
-import { fetchStats } from './ai.js?v=4';
+import { state, PROXY_BASE, getHeaders } from './config.js?v=6';
+import { i18n } from './i18n.js?v=6';
+import { fetchStats } from './ai.js?v=6';
 
 export const dom = {};
 
@@ -31,18 +31,17 @@ export function setStatus(msg, type) {
 }
 
 export async function checkWorkerStatus() {
-    const dot = document.getElementById('cfStatusDot');
-    if (!dot) return;
+    const renderDot = document.getElementById('renderStatusDot');
+    if (renderDot) renderDot.className = 'cf-status-dot checking';
 
-    dot.className = 'cf-status-dot checking';
     try {
-        const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 5000);
-        const resp = await fetch(`${WORKER_BASE}/api/stats`, { signal: controller.signal, headers: getHeaders() });
-        clearTimeout(timeout);
-        dot.className = resp.ok ? 'cf-status-dot online' : 'cf-status-dot offline';
+        const controller1 = new AbortController();
+        const timeout1 = setTimeout(() => controller1.abort(), 5000);
+        const respRender = await fetch(`${PROXY_BASE}/api/stats?_=${Date.now()}`, { signal: controller1.signal, headers: getHeaders() });
+        clearTimeout(timeout1);
+        if (renderDot) renderDot.className = respRender.ok ? 'cf-status-dot online' : 'cf-status-dot offline';
     } catch (e) {
-        dot.className = 'cf-status-dot offline';
+        if (renderDot) renderDot.className = 'cf-status-dot offline';
     }
 }
 

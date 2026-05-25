@@ -6,8 +6,8 @@
 
 <a name="русский"></a>
 ## Русский
-### ВНИМАНИЕ!: CloudFlare заблокирован в рф, вследствие этого используйте КВН или запрет
-Бесплатное Web-приложение для создания тир-листов (рейтингов) на основе вашей библиотеки игр Steam. 
+### ВНИМАНИЕ!: ~~CloudFlare заблокирован в рф, вследствие этого используйте КВН или запрет~~ cf->render. Если надо обеспечить доступ в рф - используйте прокси через рендер
+Бесплатное Web-приложение для создания тир-листов (рейтингов) на основе вашей библиотеки игр Steam.
 
 Проект состоит из клиентской части (Frontend на чистом JS/HTML/CSS) и серверной части (Cloudflare Worker), которая выступает в роли прокси для безопасного взаимодействия с API Steam и нейросетями.
 
@@ -83,7 +83,7 @@
 
 1. Откройте файл `js/config.js`.
 2. Вставьте ваш публичный ключ **Site Key** от Cloudflare Turnstile в константу `TURNSTILE_SITEKEY`.
-3. Убедитесь, что константа `CLOUDFLARE_WORKER_URL` указывает на ваш локальный воркер (например, `http://localhost:8787/`) или на ваш опубликованный рабочий воркер в Cloudflare.
+3. Убедитесь, что константа `PROXY_URL` указывает на ваш локальный воркер (например, `http://localhost:8787/`) или на ваш опубликованный рабочий воркер в Cloudflare.
 3. Запустите локальный веб-сервер в корневой папке проекта. Проще всего использовать `serve`:
    `npx serve`
 4. Откройте предложенный адрес (обычно `http://localhost:3000`) в браузере.
@@ -179,7 +179,7 @@ You will need a Cloudflare account and Node.js installed.
 
 1. Open the file `js/config.js`.
 2. Insert your public **Site Key** from Cloudflare Turnstile into the `TURNSTILE_SITEKEY` constant.
-3. Ensure the `CLOUDFLARE_WORKER_URL` constant points to your local worker (e.g., `http://localhost:8787/`) or your deployed Cloudflare worker URL.
+3. Ensure the `PROXY_URL` constant points to your local worker (e.g., `http://localhost:8787/`) or your deployed Cloudflare worker URL.
 3. Run a local web server in the project root. The easiest way is using `serve`: 
    `npx serve`
 4. Open the provided address (usually `http://localhost:3000`) in your browser.

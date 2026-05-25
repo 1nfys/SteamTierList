@@ -662,14 +662,14 @@ input[type="text"]:focus {
     letter-spacing: 0.06em;
 }
 
-.cf-status-badge {
+.render-status-badge {
     display: inline-flex;
     align-items: center;
     gap: 7px;
     padding: 5px 12px 5px 8px;
-    border: 1px solid rgba(246, 130, 31, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.2);
     border-radius: 20px;
-    background: rgba(246, 130, 31, 0.05);
+    background: rgba(255, 255, 255, 0.05);
     text-decoration: none;
     color: rgba(255,255,255,0.45);
     font-size: 0.75rem;
@@ -678,9 +678,9 @@ input[type="text"]:focus {
     transition: border-color 0.2s, background 0.2s, color 0.2s;
 }
 
-.cf-status-badge:hover {
-    border-color: rgba(246, 130, 31, 0.5);
-    background: rgba(246, 130, 31, 0.1);
+.render-status-badge:hover {
+    border-color: rgba(255, 255, 255, 0.5);
+    background: rgba(255, 255, 255, 0.1);
     color: rgba(255,255,255,0.75);
 }
 
@@ -729,7 +729,15 @@ input[type="text"]:focus {
     opacity: 0.7;
 }
 
-.cf-status-badge:hover .cf-icon {
+.render-icon {
+    width: 14px;
+    height: 14px;
+    flex-shrink: 0;
+    opacity: 1;
+}
+
+.render-status-badge:hover .cf-icon,
+.render-status-badge:hover .render-icon {
     opacity: 1;
 }
 

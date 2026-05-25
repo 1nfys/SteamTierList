@@ -1,5 +1,5 @@
-export const CLOUDFLARE_WORKER_URL = 'https://stl.curly2089.workers.dev/';
-export const WORKER_BASE = CLOUDFLARE_WORKER_URL.replace(/\/$/, '');
+export const PROXY_URL = 'https://stlp.onrender.com/';
+export const PROXY_BASE = PROXY_URL.replace(/\/$/, '');
 export const TURNSTILE_SITEKEY = '0x4AAAAAADVmLjENOqJicyxs';
 
 let localPwd = '';
@@ -12,7 +12,7 @@ if (window.location.hostname === 'localhost' || window.location.hostname === '12
 }
 
 export const getHeaders = () => {
-    const h = { 
+    const h = {
         'Content-Type': 'application/json'
     };
     if (localPwd) h['x-local-password'] = encodeURIComponent(localPwd);

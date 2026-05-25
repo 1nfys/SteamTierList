@@ -1,5 +1,5 @@
-import { WORKER_BASE, state, getHeaders, TURNSTILE_SITEKEY } from './config.js?v=4';
-import { i18n } from './i18n.js?v=4';
+import { PROXY_BASE, state, getHeaders, TURNSTILE_SITEKEY } from './config.js?v=6';
+import { i18n } from './i18n.js?v=6';
 
 export function parseMarkdownFallback(text) {
     const tierMap = { s: [], a: [], b: [], c: [], d: [], f: [] };
@@ -40,7 +40,7 @@ export function parseMarkdownFallback(text) {
 }
 
 export async function fetchStats() {
-    const resp = await fetch(`${WORKER_BASE}/api/stats?_=${Date.now()}`, { headers: getHeaders() });
+    const resp = await fetch(`${PROXY_BASE}/api/stats?_=${Date.now()}`, { headers: getHeaders() });
     if (resp.status === 401) {
         localStorage.removeItem('localPwd');
         alert("Неверный локальный пароль. Страница будет перезагружена.");
@@ -98,7 +98,7 @@ export async function callAI(messages, updateStatusCallback) {
         }
 
         updateStatusCallback(i18n[state.currentLang].aiRequestCf, 'loading');
-        const response = await fetch(`${WORKER_BASE}/api/workers-ai`, {
+        const response = await fetch(`${PROXY_BASE}/api/workers-ai`, {
             method: 'POST',
             headers: getHeaders(),
             body: JSON.stringify({

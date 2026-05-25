@@ -1,12 +1,12 @@
-import { state, WORKER_BASE, getHeaders } from './config.js?v=4';
-import { i18n } from './i18n.js?v=4';
-import { resolveSteamId } from './steam.js?v=4';
-import { callAI, parseAIResponse } from './ai.js?v=4';
+import { state, PROXY_BASE, getHeaders } from './config.js?v=6';
+import { i18n } from './i18n.js?v=6';
+import { resolveSteamId } from './steam.js?v=6';
+import { callAI, parseAIResponse } from './ai.js?v=6';
 import {
     dom, initDOM, setStatus, checkWorkerStatus,
     updateSliderUI, updateAIResourceUI, setLanguage,
     renderGames, distributeGamesFromAI
-} from './ui.js?v=4';
+} from './ui.js?v=6';
 
 document.addEventListener('DOMContentLoaded', () => {
     initDOM();
@@ -60,7 +60,7 @@ document.addEventListener('DOMContentLoaded', () => {
             setStatus(i18n[state.currentLang].statusLoading, 'loading');
 
             const includeFree = (dom.freeGamesCheckbox && dom.freeGamesCheckbox.checked) ? 1 : 0;
-            const response = await fetch(`${WORKER_BASE}/api/steam-games?steamid=${steamId}&include_free=${includeFree}`, { headers: getHeaders() });
+            const response = await fetch(`${PROXY_BASE}/api/steam-games?steamid=${steamId}&include_free=${includeFree}`, { headers: getHeaders() });
             if (response.status === 429) {
                 let errMsg = i18n[state.currentLang].errorRateLimitIp || "Превышен лимит запросов.";
                 try {
