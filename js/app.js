@@ -1,12 +1,12 @@
-import { state, PROXY_BASE, getHeaders } from './config.js?v=6';
-import { i18n, getI18n } from './i18n.js?v=6';
-import { resolveSteamId } from './steam.js?v=6';
-import { callAI, parseAIResponse } from './ai.js?v=6';
+import { state, PROXY_BASE, getHeaders } from './config.js?v=7';
+import { i18n, getI18n } from './i18n.js?v=7';
+import { resolveSteamId } from './steam.js?v=7';
+import { callAI, parseAIResponse } from './ai.js?v=7';
 import {
     dom, initDOM, setStatus, checkWorkerStatus,
     updateSliderUI, updateAIResourceUI, setLanguage,
     renderGames, distributeGamesFromAI
-} from './ui.js?v=6';
+} from './ui.js?v=7';
 
 document.addEventListener('DOMContentLoaded', () => {
     initDOM();
