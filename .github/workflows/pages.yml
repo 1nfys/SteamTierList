@@ -31,17 +31,17 @@ jobs:
           node-version: 20
 
       - name: Setup Pages
-        uses: actions/configure-pages@983d7736340e2137b247515152285750d43f07a7
+        uses: actions/configure-pages@983d7736d9b0ae728b81ab479565c72886d7745b
 
       - name: Bust Cache (Run bump-version.js)
         run: node bump-version.js
 
       - name: Upload Artifact
-        uses: actions/upload-pages-artifact@56afc606e16f31cf31818d6722d7335d517c2f0f
+        uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa
         with:
           path: '.'
 
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@5d6a87698b916de4c981c3373b41af57cfb2983f
+        uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e
 
