@@ -1,5 +1,5 @@
 import { PROXY_BASE, state, getHeaders } from './config.js?v=6';
-import { i18n } from './i18n.js?v=6';
+import { i18n, getI18n } from './i18n.js?v=6';
 
 export async function resolveSteamId(input) {
     input = input.trim().replace(/\/$/, '');
@@ -13,11 +13,11 @@ export async function resolveSteamId(input) {
 
     if (vanityName) {
         const res = await fetch(`${PROXY_BASE}/api/steam-resolve?vanityurl=${encodeURIComponent(vanityName)}`, { headers: getHeaders() });
-        if (res.status === 429) throw new Error(i18n[state.currentLang].errorRateLimitIp || "Превышен лимит запросов.");
-        if (!res.ok) throw new Error(i18n[state.currentLang].errorNetworkResolve);
+        if (res.status === 429) throw new Error(getI18n().errorRateLimitIp || "Превышен лимит запросов.");
+        if (!res.ok) throw new Error(getI18n().errorNetworkResolve);
         const data = await res.json();
         if (data.response?.success === 1) return data.response.steamid;
-        throw new Error(i18n[state.currentLang].errorProfileNotFound);
+        throw new Error(getI18n().errorProfileNotFound);
     }
-    throw new Error(i18n[state.currentLang].errorInvalidSteamId);
+    throw new Error(getI18n().errorInvalidSteamId);
 }

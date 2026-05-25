@@ -315,6 +315,7 @@ input[type="text"]:focus {
     left: 50%;
     transform: translateX(-50%);
     width: 320px;
+    max-width: calc(100vw - 32px);
     background: rgba(16, 16, 22, 0.95);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);

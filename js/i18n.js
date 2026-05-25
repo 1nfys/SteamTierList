@@ -1,3 +1,9 @@
+import { state } from './config.js?v=6';
+
+export function getI18n() {
+    return state.currentLang === 'en' ? i18n.en : i18n.ru;
+}
+
 export const i18n = {
     ru: {
         pageTitle: "Конструктор тир-листов Steam",

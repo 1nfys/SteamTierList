@@ -1,5 +1,5 @@
 import { state, PROXY_BASE, getHeaders } from './config.js?v=6';
-import { i18n } from './i18n.js?v=6';
+import { i18n, getI18n } from './i18n.js?v=6';
 import { resolveSteamId } from './steam.js?v=6';
 import { callAI, parseAIResponse } from './ai.js?v=6';
 import {
@@ -49,32 +49,32 @@ document.addEventListener('DOMContentLoaded', () => {
         if (now - lastLoadClickTime < 5000) return;
 
         const rawInput = dom.steamIdInput.value.trim();
-        if (!rawInput) { setStatus(i18n[state.currentLang].statusPleaseEnter, 'error'); return; }
+        if (!rawInput) { setStatus(getI18n().statusPleaseEnter, 'error'); return; }
 
         lastLoadClickTime = now;
-        setStatus(i18n[state.currentLang].statusResolving, 'loading');
+        setStatus(getI18n().statusResolving, 'loading');
         dom.loadBtn.disabled = true;
 
         try {
             const steamId = await resolveSteamId(rawInput);
-            setStatus(i18n[state.currentLang].statusLoading, 'loading');
+            setStatus(getI18n().statusLoading, 'loading');
 
             const includeFree = (dom.freeGamesCheckbox && dom.freeGamesCheckbox.checked) ? 1 : 0;
             const response = await fetch(`${PROXY_BASE}/api/steam-games?steamid=${steamId}&include_free=${includeFree}`, { headers: getHeaders() });
             if (response.status === 429) {
-                let errMsg = i18n[state.currentLang].errorRateLimitIp || "Превышен лимит запросов.";
+                let errMsg = getI18n().errorRateLimitIp || "Превышен лимит запросов.";
                 try {
                     const errData = await response.json();
                     if (errData.error === 'Global limit reached') {
-                        errMsg = i18n[state.currentLang].errorRateLimitGlobal || "Превышен общий лимит сети.";
+                        errMsg = getI18n().errorRateLimitGlobal || "Превышен общий лимит сети.";
                     }
                 } catch (_) {}
                 throw new Error(errMsg);
             }
-            if (!response.ok) throw new Error(i18n[state.currentLang].errorNetwork);
+            if (!response.ok) throw new Error(getI18n().errorNetwork);
 
             const data = await response.json();
-            if (!data.response?.games) throw new Error(i18n[state.currentLang].errorProfileHidden);
+            if (!data.response?.games) throw new Error(getI18n().errorProfileHidden);
 
             state.rawSteamGames = data.response.games
                 .sort((a, b) => b.playtime_forever - a.playtime_forever);
@@ -83,14 +83,14 @@ document.addEventListener('DOMContentLoaded', () => {
             state.allGames = state.rawSteamGames.slice(0, count);
 
             renderGames(state.allGames);
-            setStatus(i18n[state.currentLang].statusSuccess.replace('{count}', state.allGames.length), 'success');
+            setStatus(getI18n().statusSuccess.replace('{count}', state.allGames.length), 'success');
             updateSliderUI();
             dom.controlsContainer.classList.remove('hidden');
             dom.exportBtn.disabled = false;
             dom.aiTierBtn.disabled = false;
         } catch (error) {
             console.error(error);
-            setStatus(error.message || i18n[state.currentLang].statusErrorLoad, 'error');
+            setStatus(error.message || getI18n().statusErrorLoad, 'error');
         } finally {
             const elapsed = Date.now() - lastLoadClickTime;
             const remaining = Math.max(0, 5000 - elapsed);
@@ -105,36 +105,36 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     dom.aiTierBtn.addEventListener('click', async () => {
-        if (!state.allGames.length) { setStatus(i18n[state.currentLang].statusPleaseEnter, 'error'); return; }
+        if (!state.allGames.length) { setStatus(getI18n().statusPleaseEnter, 'error'); return; }
 
         dom.aiSortDropdown.classList.remove('open');
 
-        setStatus(i18n[state.currentLang].statusSortStart, 'loading');
+        setStatus(getI18n().statusSortStart, 'loading');
         dom.aiTierBtn.disabled = true;
         document.querySelectorAll('.game-item').forEach(item => item.classList.add('ai-sorting'));
 
         try {
             const gamesText = state.allGames.map(g => `${g.appid}: "${g.name}"`).join('\n');
             const messages = [
-                { role: 'system', content: i18n[state.currentLang].promptSystem },
+                { role: 'system', content: getI18n().promptSystem },
                 {
                     role: 'user',
-                    content: `${i18n[state.currentLang].promptUser}\n\nФормат ответа JSON:\n{\n  "games": [\n    {\n      "appid": 12345,\n      "tier": "s",\n      "verdict": "краткий вердикт"\n    }\n  ]\n}\n\nСписок игр:\n${gamesText}`
+                    content: `${getI18n().promptUser}\n\nФормат ответа JSON:\n{\n  "games": [\n    {\n      "appid": 12345,\n      "tier": "s",\n      "verdict": "краткий вердикт"\n    }\n  ]\n}\n\nСписок игр:\n${gamesText}`
                 }
             ];
 
             const aiResult = await callAI(messages, setStatus);
-            if (!aiResult?.content) throw new Error(i18n[state.currentLang].errorNoAiResponse);
+            if (!aiResult?.content) throw new Error(getI18n().errorNoAiResponse);
 
             const { tierMap, reasonsMap } = parseAIResponse(aiResult.content);
 
             distributeGamesFromAI(tierMap, reasonsMap);
-            setStatus(i18n[state.currentLang].statusSortSuccess, 'success');
+            setStatus(getI18n().statusSortSuccess, 'success');
 
             updateAIResourceUI(true);
         } catch (error) {
             console.error(error);
-            setStatus(error.message || i18n[state.currentLang].errorAiConnection, 'error');
+            setStatus(error.message || getI18n().errorAiConnection, 'error');
         } finally {
             dom.aiTierBtn.disabled = false;
             document.querySelectorAll('.game-item').forEach(item => item.classList.remove('ai-sorting'));

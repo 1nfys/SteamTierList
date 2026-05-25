@@ -1,5 +1,5 @@
 import { state, PROXY_BASE, getHeaders } from './config.js?v=6';
-import { i18n } from './i18n.js?v=6';
+import { i18n, getI18n } from './i18n.js?v=6';
 import { fetchStats } from './ai.js?v=6';
 
 export const dom = {};
@@ -53,16 +53,16 @@ export function updateSliderUI() {
     const countLabel = document.getElementById('gameCountLabel');
     const costLabel = document.getElementById('energyCostLabel');
 
-    if (countLabel && i18n[state.currentLang].gamesToLoad) {
-        countLabel.textContent = i18n[state.currentLang].gamesToLoad.replace('{count}', count);
+    if (countLabel && getI18n().gamesToLoad) {
+        countLabel.textContent = getI18n().gamesToLoad.replace('{count}', count);
     }
     if (costLabel) {
         const isLoaded = (state.allGames && state.allGames.length > 0);
         if (isLoaded) {
             const loadedCost = Math.ceil(state.allGames.length / 25);
-            costLabel.textContent = (i18n[state.currentLang].finalCost || "Итоговый расход энергии: {cost} ⚡").replace('{cost}', loadedCost);
+            costLabel.textContent = (getI18n().finalCost || "Итоговый расход энергии: {cost} ⚡").replace('{cost}', loadedCost);
         } else {
-            costLabel.textContent = (i18n[state.currentLang].estimatedCost || "Ожидаемый расход энергии: {cost} ⚡").replace('{cost}', cost);
+            costLabel.textContent = (getI18n().estimatedCost || "Ожидаемый расход энергии: {cost} ⚡").replace('{cost}', cost);
         }
     }
 
@@ -71,16 +71,16 @@ export function updateSliderUI() {
         if (state.stats) {
             const remaining = Math.max(0, state.stats.user_limit - state.stats.user_used);
             if (cost > remaining) {
-                warningEl.textContent = i18n[state.currentLang].insufficientEnergyWarning;
+                warningEl.textContent = getI18n().insufficientEnergyWarning;
                 warningEl.style.color = '#ef4444';
                 warningEl.style.fontWeight = 'bold';
             } else {
-                warningEl.textContent = i18n[state.currentLang].sliderWarning;
+                warningEl.textContent = getI18n().sliderWarning;
                 warningEl.style.color = '';
                 warningEl.style.fontWeight = '';
             }
         } else {
-            warningEl.textContent = i18n[state.currentLang].sliderWarning;
+            warningEl.textContent = getI18n().sliderWarning;
             warningEl.style.color = '';
             warningEl.style.fontWeight = '';
         }
@@ -106,7 +106,7 @@ export async function updateAIResourceUI(forceFetch = false) {
         }
         dom.aiResourceFill.style.width = `${percent}%`;
 
-        const timeString = i18n[state.currentLang].resetTimeText.replace('{hours}', stats.hours_to_reset);
+        const timeString = getI18n().resetTimeText.replace('{hours}', stats.hours_to_reset);
         const resetTimeText = document.getElementById('resetTimeText');
         const globalResetTimeText = document.getElementById('globalResetTimeText');
         if (resetTimeText) resetTimeText.textContent = timeString;
@@ -126,6 +126,7 @@ export async function updateAIResourceUI(forceFetch = false) {
 }
 
 export function setLanguage(lang) {
+    lang = lang === 'en' ? 'en' : 'ru';
     state.currentLang = lang;
     localStorage.setItem('stl_lang', lang);
     document.title = i18n[lang].pageTitle || document.title;
@@ -197,39 +198,44 @@ function handleDragEnd() {
     dom.dropzones.forEach(dz => dz.classList.remove('drag-over'));
 }
 
-export function distributeGamesFromAI(tierMap, reasonsMap = {}) {
+export function distributeGamesFromAI(tierMap, reasonsMap = new Map()) {
     dom.gamePool.querySelector('.empty-pool-text')?.remove();
 
     const assignedGames = new Set();
-    const normalizedTierMap = { s: [], a: [], b: [], c: [], d: [], f: [] };
+    const normalizedTierMap = new Map([['s', []], ['a', []], ['b', []], ['c', []], ['d', []], ['f', []]]);
 
-    Object.keys(tierMap).forEach(key => {
+    for (let [key, valArr] of tierMap.entries()) {
         const lKey = key.toLowerCase();
-        if (normalizedTierMap[lKey]) normalizedTierMap[lKey] = normalizedTierMap[lKey].concat(tierMap[key] || []);
-    });
+        if (normalizedTierMap.has(lKey)) {
+            normalizedTierMap.set(lKey, normalizedTierMap.get(lKey).concat(valArr || []));
+        }
+    }
 
     state.allGames.forEach(game => {
         const id = game.appid;
-        const inAnyTier = Object.values(normalizedTierMap).some(arr =>
-            arr.includes(id) || arr.includes(String(id)) || arr.includes(Number(id))
-        );
+        let inAnyTier = false;
+        for (let arr of normalizedTierMap.values()) {
+            if (arr.includes(id) || arr.includes(String(id)) || arr.includes(Number(id))) {
+                inAnyTier = true; break;
+            }
+        }
         if (inAnyTier) return;
 
         const gameNameLower = game.name.toLowerCase().trim();
         let matchedTier = null;
-        Object.keys(normalizedTierMap).forEach(tierKey => {
-            if (normalizedTierMap[tierKey].some(val => {
+        for (let [tierKey, arr] of normalizedTierMap.entries()) {
+            if (arr.some(val => {
                 if (typeof val !== 'string') return false;
                 const v = val.toLowerCase().trim();
                 return v === gameNameLower || gameNameLower.includes(v) || v.includes(gameNameLower);
             })) matchedTier = tierKey;
-        });
+        }
 
         if (matchedTier) {
-            normalizedTierMap[matchedTier].push(id);
+            normalizedTierMap.get(matchedTier).push(id);
         } else {
-            normalizedTierMap['c'].push(id);
-            reasonsMap[id] = i18n[state.currentLang].aiShyToEvaluate || "ИИ постеснялся оценить этот шедевр";
+            normalizedTierMap.get('c').push(id);
+            reasonsMap.set(id, getI18n().aiShyToEvaluate || "ИИ постеснялся оценить этот шедевр");
         }
     });
 
@@ -242,11 +248,11 @@ export function distributeGamesFromAI(tierMap, reasonsMap = {}) {
         }
     });
 
-    Object.keys(normalizedTierMap).forEach(tierKey => {
+    for (let [tierKey, arr] of normalizedTierMap.entries()) {
         const dropzone = document.querySelector(`.tier-dropzone[data-tier="${tierKey}"]`);
-        if (!dropzone) return;
+        if (!dropzone) continue;
 
-        normalizedTierMap[tierKey].forEach(id => {
+        arr.forEach(id => {
             const numId = Number(id);
             if (assignedGames.has(numId)) return;
             assignedGames.add(numId);
@@ -254,19 +260,20 @@ export function distributeGamesFromAI(tierMap, reasonsMap = {}) {
             const gameEl = document.getElementById(`game-${numId}`);
             if (!gameEl) return;
 
-            let reason = reasonsMap[numId] || reasonsMap[String(numId)];
+            let reason = reasonsMap.get(numId) || reasonsMap.get(String(numId));
             if (!reason) {
                 const game = state.allGames.find(g => g.appid === numId);
                 if (game) {
                     const gameNameLower = game.name.toLowerCase().trim();
-                    const matchedKey = Object.keys(reasonsMap).find(k => {
-                        const kl = k.toLowerCase().trim();
-                        return kl === gameNameLower || gameNameLower.includes(kl) || kl.includes(gameNameLower);
-                    });
-                    if (matchedKey) reason = reasonsMap[matchedKey];
+                    for (let [k, v] of reasonsMap.entries()) {
+                        const kl = String(k).toLowerCase().trim();
+                        if (kl === gameNameLower || gameNameLower.includes(kl) || kl.includes(gameNameLower)) {
+                            reason = v; break;
+                        }
+                    }
                 }
             }
-            reason = reason || i18n[state.currentLang].defaultVerdict || "Приятная игра в коллекции";
+            reason = reason || getI18n().defaultVerdict || "Приятная игра в коллекции";
 
             gameEl.setAttribute('data-tooltip', reason);
             gameEl.setAttribute('data-tier', tierKey);
@@ -274,7 +281,7 @@ export function distributeGamesFromAI(tierMap, reasonsMap = {}) {
 
             setTimeout(() => dropzone.appendChild(gameEl), Math.random() * 500);
         });
-    });
+    }
 
     setTimeout(() => {
         dom.gamePool.querySelectorAll('.game-item').forEach(game => {

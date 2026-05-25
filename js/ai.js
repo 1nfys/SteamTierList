@@ -1,9 +1,9 @@
 import { PROXY_BASE, state, getHeaders, TURNSTILE_SITEKEY } from './config.js?v=6';
-import { i18n } from './i18n.js?v=6';
+import { i18n, getI18n } from './i18n.js?v=6';
 
 export function parseMarkdownFallback(text) {
-    const tierMap = { s: [], a: [], b: [], c: [], d: [], f: [] };
-    const reasonsMap = {};
+    const tierMap = new Map([['s', []], ['a', []], ['b', []], ['c', []], ['d', []], ['f', []]]);
+    const reasonsMap = new Map();
     let currentTier = null;
 
     for (let line of text.split('\n')) {
@@ -16,8 +16,8 @@ export function parseMarkdownFallback(text) {
             const reason = lineWithTierMatch[3] ? lineWithTierMatch[3].trim() : 'Интересная игра в коллекции';
             const tierChar = lineWithTierMatch[4].trim().charAt(0).toLowerCase();
             if (['s', 'a', 'b', 'c', 'd', 'f'].includes(tierChar)) {
-                tierMap[tierChar].push(appid);
-                reasonsMap[appid] = reason;
+                tierMap.get(tierChar).push(appid);
+                reasonsMap.set(appid, reason);
                 continue;
             }
         }
@@ -32,8 +32,8 @@ export function parseMarkdownFallback(text) {
         if (gameMatch && currentTier) {
             const appid = Number(gameMatch[1]);
             const reason = gameMatch[3] ? gameMatch[3].trim() : '';
-            tierMap[currentTier].push(appid);
-            if (reason) reasonsMap[appid] = reason;
+            tierMap.get(currentTier).push(appid);
+            if (reason) reasonsMap.set(appid, reason);
         }
     }
     return { tierMap, reasonsMap };
@@ -62,7 +62,7 @@ export async function callAI(messages, updateStatusCallback) {
     }
 
     if (limitReached) {
-        throw new Error(i18n[state.currentLang].aiCfLimitReached || "Лимит энергии ИИ исчерпан.");
+        throw new Error(getI18n().aiCfLimitReached || "Лимит энергии ИИ исчерпан.");
     }
 
     try {
@@ -70,13 +70,13 @@ export async function callAI(messages, updateStatusCallback) {
         const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
         
         if (!isLocal) {
-            updateStatusCallback(i18n[state.currentLang].tsChecking || "Проверка безопасности...", 'loading');
+            updateStatusCallback(getI18n().tsChecking || "Проверка безопасности...", 'loading');
             const container = document.getElementById('turnstile-container');
             if (container) container.style.display = 'flex';
             
             turnstileToken = await new Promise((resolve, reject) => {
                 if (typeof turnstile === 'undefined') {
-                    reject(new Error(i18n[state.currentLang].tsScriptMissing || "Скрипт защиты не загрузился."));
+                    reject(new Error(getI18n().tsScriptMissing || "Скрипт защиты не загрузился."));
                     return;
                 }
                 
@@ -91,13 +91,13 @@ export async function callAI(messages, updateStatusCallback) {
                         resolve(token); 
                     },
                     "error-callback": function() { 
-                        reject(new Error(i18n[state.currentLang].tsFailed || "Ошибка проверки безопасности (Turnstile).")); 
+                        reject(new Error(getI18n().tsFailed || "Ошибка проверки безопасности (Turnstile).")); 
                     }
                 });
             });
         }
 
-        updateStatusCallback(i18n[state.currentLang].aiRequestCf, 'loading');
+        updateStatusCallback(getI18n().aiRequestCf, 'loading');
         const response = await fetch(`${PROXY_BASE}/api/workers-ai`, {
             method: 'POST',
             headers: getHeaders(),
@@ -113,29 +113,35 @@ export async function callAI(messages, updateStatusCallback) {
         });
         if (response.ok) {
             const data = await response.json();
-            if (data.choices?.[0]?.message?.content) {
-                return { content: data.choices[0].message.content, source: 'cf' };
+            const choice = data.choices?.[0];
+            if (choice?.message) {
+                const msg = choice.message;
+                if (msg.refusal) {
+                    throw new Error("AI refused: " + msg.refusal);
+                } else if (msg.content) {
+                    return { content: msg.content, source: 'cf' };
+                }
             }
         } else {
             try {
                 const errData = await response.json();
                 if (errData.error === 'Too many requests') {
-                    throw new Error(i18n[state.currentLang].errorRateLimitIp || "Превышен лимит запросов с вашего IP.");
+                    throw new Error(getI18n().errorRateLimitIp || "Превышен лимит запросов с вашего IP.");
                 } else if (errData.error === 'Global limit reached') {
-                    throw new Error(i18n[state.currentLang].errorRateLimitGlobal || "Превышен общий лимит сети.");
+                    throw new Error(getI18n().errorRateLimitGlobal || "Превышен общий лимит сети.");
                 } else if (errData.error) {
                     throw new Error(errData.error);
                 }
             } catch (jsonErr) {
                 if (response.status === 429) {
-                    throw new Error(i18n[state.currentLang].errorRateLimitIp || "Превышен лимит запросов с вашего IP.");
+                    throw new Error(getI18n().errorRateLimitIp || "Превышен лимит запросов с вашего IP.");
                 }
                 throw jsonErr;
             }
         }
-        throw new Error(i18n[state.currentLang].aiCfUnavailable || "Workers AI недоступен.");
+        throw new Error(getI18n().aiCfUnavailable || "Workers AI недоступен.");
     } catch (e) {
-        throw new Error(e.message || i18n[state.currentLang].aiCfFailed || "Сбой Workers AI.");
+        throw new Error(e.message || getI18n().aiCfFailed || "Сбой Workers AI.");
     }
 }
 
@@ -144,23 +150,22 @@ export function parseAIResponse(aiText) {
     cleanedText = cleanedText.replace(/```json/gi, '').replace(/```/g, '').trim();
 
     const jsonMatch = cleanedText.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) throw new Error(i18n[state.currentLang].errorNoJson);
+    if (!jsonMatch) throw new Error(getI18n().errorNoJson);
 
-    let tierMap = { s: [], a: [], b: [], c: [], d: [], f: [] };
-    let reasonsMap = {};
+    let tierMap = new Map([['s', []], ['a', []], ['b', []], ['c', []], ['d', []], ['f', []]]);
+    let reasonsMap = new Map();
     let parsedSuccess = false;
 
     try {
         const parsed = JSON.parse(jsonMatch[0]);
         if (parsed.games && Array.isArray(parsed.games)) {
-            parsed.games.forEach(g => {
-                const appid = Number(g.appid);
-                const tier = String(g.tier || '').toLowerCase().trim();
-                const verdict = g.verdict || g.reason || '';
-
-                if (appid && ['s', 'a', 'b', 'c', 'd', 'f'].includes(tier)) {
-                    tierMap[tier].push(appid);
-                    if (verdict) reasonsMap[appid] = verdict;
+            parsed.games.forEach(game => {
+                const lTier = String(game.tier || '').toLowerCase().trim();
+                if (['s', 'a', 'b', 'c', 'd', 'f'].includes(lTier)) {
+                    tierMap.get(lTier).push(Number(game.appid));
+                }
+                if (game.verdict || game.reason) {
+                    reasonsMap.set(Number(game.appid), String(game.verdict || game.reason));
                 }
             });
             parsedSuccess = true;
@@ -168,14 +173,14 @@ export function parseAIResponse(aiText) {
             const rawTiers = parsed.tiers || parsed;
             const rawReasons = parsed.reasons || {};
 
-            Object.keys(rawTiers).forEach(key => {
+            Object.entries(rawTiers).forEach(([key, val]) => {
                 const lKey = key.toLowerCase();
                 if (['s', 'a', 'b', 'c', 'd', 'f'].includes(lKey)) {
-                    tierMap[lKey] = Array.isArray(rawTiers[key]) ? rawTiers[key].map(Number) : [];
+                    tierMap.set(lKey, Array.isArray(val) ? val.map(Number) : []);
                 }
             });
-            Object.keys(rawReasons).forEach(key => {
-                reasonsMap[Number(key)] = String(rawReasons[key]);
+            Object.entries(rawReasons).forEach(([key, val]) => {
+                reasonsMap.set(Number(key), String(val));
             });
             parsedSuccess = true;
         }
@@ -194,42 +199,45 @@ export function parseAIResponse(aiText) {
                 if (idMatch && tierMatch) {
                     const appid = Number(idMatch[1]);
                     const tier = tierMatch[1].toLowerCase();
-                    tierMap[tier].push(appid);
-                    if (verdictMatch) reasonsMap[appid] = verdictMatch[1];
+                    if (tierMap.has(tier)) tierMap.get(tier).push(appid);
+                    if (verdictMatch) reasonsMap.set(appid, verdictMatch[1]);
                 }
             });
-            const totalExtracted = Object.values(tierMap).reduce((sum, arr) => sum + arr.length, 0);
+            let totalExtracted = 0;
+            for (let arr of tierMap.values()) totalExtracted += arr.length;
             if (totalExtracted > 0) parsedSuccess = true;
         }
     }
 
     if (!parsedSuccess) {
-        ['s', 'a', 'b', 'c', 'd', 'f'].forEach(t => {
-            const match = cleanedText.match(new RegExp(`"${t}"\\s*:\\s*\\[([^\\]]*)\\]`, 'i'));
-            if (match) {
-                const ids = match[1].match(/\d+/g);
-                if (ids) tierMap[t] = ids.map(Number);
-            }
-        });
+        const regex = /"(s|a|b|c|d|f)"\s*:\s*\[([^\]]*)\]/ig;
+        let match;
+        while ((match = regex.exec(cleanedText)) !== null) {
+            const t = match[1].toLowerCase();
+            const ids = match[2].match(/\d+/g);
+            if (ids && tierMap.has(t)) tierMap.set(t, ids.map(Number));
+        }
         const reasonsMatch = cleanedText.match(/"reasons"\s*:\s*\{([^}]+)\}/i);
         if (reasonsMatch) {
             const pairs = reasonsMatch[1].match(/"(\d+)"\s*:\s*"([^"]+)"/g);
             if (pairs) pairs.forEach(pair => {
                 const m = pair.match(/"(\d+)"\s*:\s*"([^"]+)"/);
-                if (m) reasonsMap[Number(m[1])] = m[2];
+                if (m) reasonsMap.set(Number(m[1]), m[2]);
             });
         }
     }
 
-    let totalAssigned = Object.values(tierMap).reduce((sum, arr) => sum + arr.length, 0);
+    let totalAssigned = 0;
+    for (let arr of tierMap.values()) totalAssigned += arr.length;
     if (totalAssigned === 0) {
         const mdResult = parseMarkdownFallback(cleanedText) || parseMarkdownFallback(aiText);
         if (mdResult) {
-            const mdTotal = Object.values(mdResult.tierMap).reduce((sum, arr) => sum + arr.length, 0);
+            let mdTotal = 0;
+            for (let arr of mdResult.tierMap.values()) mdTotal += arr.length;
             if (mdTotal > 0) { tierMap = mdResult.tierMap; reasonsMap = mdResult.reasonsMap; totalAssigned = mdTotal; }
         }
     }
-    if (totalAssigned === 0) throw new Error(i18n[state.currentLang].errorEmptyDistribution);
+    if (totalAssigned === 0) throw new Error(getI18n().errorEmptyDistribution);
 
     return { tierMap, reasonsMap };
 }
