@@ -10,6 +10,7 @@ export function initDOM() {
     dom.aiTierBtn = document.getElementById('aiTierBtn');
     dom.aiSortTrigger = document.getElementById('aiSortTrigger');
     dom.aiSortDropdown = document.getElementById('aiSortDropdown');
+    dom.aiSortCloseBtn = document.getElementById('aiSortCloseBtn');
     dom.exportBtn = document.getElementById('exportBtn');
     dom.statusMessage = document.getElementById('statusMessage');
     dom.gamePool = document.getElementById('gamePool');

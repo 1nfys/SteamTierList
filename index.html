@@ -12,7 +12,7 @@
     <meta name="keywords" content="steam, tier list, тир лист, рейтинг игр, ai, нейросеть">
     <title>Конструктор тир-листов Steam</title>
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
-    <link rel="stylesheet" href="styles.css?v=9">
+    <link rel="stylesheet" href="styles.css?v=11">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link
@@ -83,8 +83,9 @@
                             Авто-сортировка</button>
                         <div class="ai-sort-menu" id="aiSortMenu">
 
-                            <div class="ai-sort-menu-section" style="display: flex; justify-content: center;">
+                            <div class="ai-sort-menu-section" style="display: flex; justify-content: space-between; align-items: center;">
                                 <span class="slider-cost" id="energyCostLabel">Расход энергии: 1 ⚡</span>
+                                <button class="ai-sort-close-btn" id="aiSortCloseBtn" aria-label="Close">&times;</button>
                             </div>
                             <div class="ai-sort-menu-section limits-row">
                                 <div class="limit-chip" id="aiEnergyChip">
@@ -176,7 +177,7 @@
         </footer>
     </div>
 
-    <script type="module" src="js/app.js?v=7"></script>
+    <script type="module" src="js/app.js?v=11"></script>
 </body>
 
 </html>

@@ -34,8 +34,15 @@ document.addEventListener('DOMContentLoaded', () => {
         dom.aiSortDropdown.classList.toggle('open');
     });
 
+    if (dom.aiSortCloseBtn) {
+        dom.aiSortCloseBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            dom.aiSortDropdown.classList.remove('open');
+        });
+    }
+
     document.addEventListener('click', (e) => {
-        if (!dom.aiSortDropdown.contains(e.target)) {
+        if (!dom.aiSortDropdown.contains(e.target) || e.target === dom.aiSortDropdown) {
             dom.aiSortDropdown.classList.remove('open');
         }
     });
