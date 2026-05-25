@@ -1,4 +1,4 @@
-import { state } from './config.js?v=7';
+import { state } from 'config';
 
 export function getI18n() {
     return state.currentLang === 'en' ? i18n.en : i18n.ru;

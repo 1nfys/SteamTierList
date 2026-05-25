@@ -1,0 +1,47 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+
+      - name: Setup Node.js
+        uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af
+        with:
+          node-version: 20
+
+      - name: Setup Pages
+        uses: actions/configure-pages@983d7736340e2137b247515152285750d43f07a7
+
+      - name: Bust Cache (Run bump-version.js)
+        run: node bump-version.js
+
+      - name: Upload Artifact
+        uses: actions/upload-pages-artifact@56afc606e16f31cf31818d6722d7335d517c2f0f
+        with:
+          path: '.'
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@5d6a87698b916de4c981c3373b41af57cfb2983f
+

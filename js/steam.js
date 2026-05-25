@@ -1,5 +1,5 @@
-import { PROXY_BASE, state, getHeaders } from './config.js?v=7';
-import { i18n, getI18n } from './i18n.js?v=7';
+import { PROXY_BASE, state, getHeaders } from 'config';
+import { getI18n } from 'i18n';
 
 export async function resolveSteamId(input) {
     input = input.trim().replace(/\/$/, '');

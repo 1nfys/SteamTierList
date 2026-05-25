@@ -1,6 +1,6 @@
-import { state, PROXY_BASE, getHeaders } from './config.js?v=7';
-import { i18n, getI18n } from './i18n.js?v=7';
-import { fetchStats } from './ai.js?v=7';
+import { state, PROXY_BASE, getHeaders } from 'config';
+import { i18n, getI18n } from 'i18n';
+import { fetchStats } from 'ai';
 
 export const dom = {};
 

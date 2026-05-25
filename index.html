@@ -12,7 +12,7 @@
     <meta name="keywords" content="steam, tier list, тир лист, рейтинг игр, ai, нейросеть">
     <title>Конструктор тир-листов Steam</title>
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
-    <link rel="stylesheet" href="styles.css?v=11">
+    <link rel="stylesheet" id="mainStyles" href="styles.css?v=BUILD_VERSION">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link
@@ -20,6 +20,19 @@
         rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" defer></script>
+    <script type="importmap">
+    {
+        "imports": {
+            "app": "./js/app.js?v=BUILD_VERSION",
+            "config": "./js/config.js?v=BUILD_VERSION",
+            "i18n": "./js/i18n.js?v=BUILD_VERSION",
+            "steam": "./js/steam.js?v=BUILD_VERSION",
+            "ai": "./js/ai.js?v=BUILD_VERSION",
+            "ui": "./js/ui.js?v=BUILD_VERSION"
+        }
+    }
+    </script>
+    <script type="module">import "app";</script>
 </head>
 
 <body>
@@ -177,7 +190,6 @@
         </footer>
     </div>
 
-    <script type="module" src="js/app.js?v=11"></script>
 </body>
 
 </html>
