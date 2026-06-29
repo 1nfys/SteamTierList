@@ -11,8 +11,7 @@ export function parseMarkdownFallback(text) {
         const trimmed = line.trim();
         if (!trimmed) continue;
 
-        const categoryPattern = categoryIds.map(id => id.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')).join('|');
-        const lineWithTierMatch = trimmed.match(new RegExp(`^\\*?\\s*(\\d+)\\s*[:.-]\\s*([^(+-]+)(?:\\(([^)]+)\\))?\\s*(?:->|=>|->\\s*Tier|=>\\s*Tier)\\s*(${categoryPattern})`, 'i'));
+        const lineWithTierMatch = trimmed.match(/^\*?\s*(\d+)\s*[:.-]\s*([^(+-]+)(?:\(([^)]+)\))?\s*(?:->|=>|->\s*Tier|=>\s*Tier)\s*(.+)/i);
         if (lineWithTierMatch) {
             const appid = Number(lineWithTierMatch[1]);
             const reason = lineWithTierMatch[3] ? lineWithTierMatch[3].trim() : (getI18n().defaultVerdict || 'Приятная игра в коллекции');
@@ -24,10 +23,13 @@ export function parseMarkdownFallback(text) {
             }
         }
 
-        const tierHeaderMatch = trimmed.match(new RegExp(`^\\*?\\*?\\s*(${categoryPattern})-Tier\\s*(?:\\([^)]*\\))?\\s*:?\\*?\\*?`, 'i'));
+        const tierHeaderMatch = trimmed.match(/^\*?\*?\s*(.+?)-Tier\s*(?:\([^)]*\))?\s*:?\*?\*?/i);
         if (tierHeaderMatch) {
-            currentTier = tierHeaderMatch[1].toLowerCase();
-            continue;
+            const tierCandidate = tierHeaderMatch[1].trim().toLowerCase();
+            if (categoryIds.includes(tierCandidate)) {
+                currentTier = tierCandidate;
+                continue;
+            }
         }
 
         const gameMatch = trimmed.match(/^\*?\s*(\d+)\s*[:.-]\s*([^(*]+)(?:\(([^)]+)\))?/);
@@ -114,7 +116,6 @@ export async function callAI(messages, updateStatusCallback) {
             lang: state.currentLang,
             turnstile_token: turnstileToken
         };
-        console.log("AI API Request:", requestPayload);
 
         const response = await fetch(`${PROXY_BASE}/api/workers-ai`, {
             method: 'POST',
@@ -123,23 +124,18 @@ export async function callAI(messages, updateStatusCallback) {
         });
         if (response.ok) {
             const data = await response.json();
-            console.log("AI API Response Data:", data);
             const choice = data.choices?.[0];
             if (choice?.message) {
                 const msg = choice.message;
                 if (msg.refusal) {
-                    console.error("AI Refusal:", msg.refusal);
                     throw new Error("AI refused: " + msg.refusal);
                 } else if (msg.content) {
-                    console.log("AI Generated Content:", msg.content);
                     return { content: msg.content, source: 'cf' };
                 }
             }
         } else {
-            console.error("AI API Error HTTP Status:", response.status);
             try {
                 const errData = await response.json();
-                console.error("AI API Error Body:", errData);
                 if (errData.error === 'Too many requests') {
                     throw new Error(getI18n().errorRateLimitIp || "Превышен лимит запросов с вашего IP.");
                 } else if (errData.error === 'Global limit reached') {
@@ -209,15 +205,16 @@ export function parseAIResponse(aiText) {
         if (gameBlockMatches && gameBlockMatches.length > 0) {
             gameBlockMatches.forEach(block => {
                 const idMatch = block.match(/"appid"\s*:\s*(\d+)/i);
-                const categoryPattern = categoryIds.map(id => id.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')).join('|');
-                const tierMatch = block.match(new RegExp(`"tier"\\s*:\\s*"(${categoryPattern})"`, 'i'));
+                const tierMatch = block.match(/"tier"\s*:\s*"([^"]+)"/i);
                 const verdictMatch = block.match(/"verdict"\s*:\s*"([^"]+)"/i) || block.match(/"reason"\s*:\s*"([^"]+)"/i);
 
                 if (idMatch && tierMatch) {
                     const appid = Number(idMatch[1]);
                     const tier = tierMatch[1].toLowerCase();
-                    if (tierMap.has(tier)) tierMap.get(tier).push(appid);
-                    if (verdictMatch) reasonsMap.set(appid, verdictMatch[1]);
+                    if (tierMap.has(tier)) {
+                        tierMap.get(tier).push(appid);
+                        if (verdictMatch) reasonsMap.set(appid, verdictMatch[1]);
+                    }
                 }
             });
             let totalExtracted = 0;
@@ -227,8 +224,7 @@ export function parseAIResponse(aiText) {
     }
 
     if (!parsedSuccess) {
-        const categoryPattern = categoryIds.map(id => id.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')).join('|');
-        const regex = new RegExp(`"(${categoryPattern})"` + '\\s*:\\s*\\[([^\\]]*)\\]', 'ig');
+        const regex = /"([^"]+)"\s*:\s*\[([^\]]*)\]/gi;
         let match;
         while ((match = regex.exec(cleanedText)) !== null) {
             const t = match[1].toLowerCase();
