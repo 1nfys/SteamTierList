@@ -1,4 +1,4 @@
-import { state, PROXY_BASE, getHeaders } from 'config';
+﻿import { state, PROXY_BASE, getHeaders } from 'config';
 import { i18n, getI18n } from 'i18n';
 import { fetchStats } from 'ai';
 
@@ -61,9 +61,9 @@ export function updateSliderUI() {
         const isLoaded = (state.allGames && state.allGames.length > 0);
         if (isLoaded) {
             const loadedCost = Math.ceil(state.allGames.length / 25);
-            costLabel.textContent = (getI18n().finalCost || "Итоговый расход энергии: {cost} ⚡").replace('{cost}', loadedCost);
+            costLabel.textContent = (getI18n().finalCost || "Итоговый расход энергии: {cost}").replace('{cost}', loadedCost);
         } else {
-            costLabel.textContent = (getI18n().estimatedCost || "Ожидаемый расход энергии: {cost} ⚡").replace('{cost}', cost);
+            costLabel.textContent = (getI18n().estimatedCost || "Ожидаемый расход энергии: {cost}").replace('{cost}', cost);
         }
     }
 
@@ -130,7 +130,13 @@ export function setLanguage(lang) {
     lang = lang === 'en' ? 'en' : 'ru';
     state.currentLang = lang;
     localStorage.setItem('stl_lang', lang);
+    document.documentElement.setAttribute('lang', lang);
     document.title = i18n[lang].pageTitle || document.title;
+    
+    const metaDesc = document.querySelector('meta[name="description"]');
+    if (metaDesc && i18n[lang].siteDescription) {
+        metaDesc.setAttribute('content', i18n[lang].siteDescription);
+    }
     
     document.querySelectorAll('[data-i18n]').forEach(el => {
         const key = el.getAttribute('data-i18n');

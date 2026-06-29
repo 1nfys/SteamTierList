@@ -9,15 +9,14 @@
     <meta http-equiv="Expires" content="0">
     <meta name="description"
         content="Создайте свой уникальный тир-лист (рейтинг) игр Steam с помощью ИИ. Быстрая загрузка библиотеки и автоматическая сортировка.">
+    <link rel="alternate" hreflang="x-default" href="https://1nfys.github.io/">
+    <link rel="alternate" hreflang="ru" href="https://1nfys.github.io/?lang=ru">
+    <link rel="alternate" hreflang="en" href="https://1nfys.github.io/?lang=en">
     <meta name="keywords" content="steam, tier list, тир лист, рейтинг игр, ai, нейросеть">
     <title>Конструктор тир-листов Steam</title>
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
     <link rel="stylesheet" id="mainStyles" href="styles.css?v=BUILD_VERSION">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link
-        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=Shadows+Into+Light&family=Special+Elite&display=swap"
-        rel="stylesheet">
+    
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" defer></script>
     <script type="importmap">
@@ -37,9 +36,6 @@
 
 <body>
     <div class="canvas">
-        <div class="ritual-mark" style="top: 5%; right: 5%;">⛧</div>
-        <div class="ritual-mark" style="bottom: 15%; left: 3%;">🜏</div>
-        <div class="ritual-mark" style="top: 40%; left: 50%; font-size: 80px; opacity: 0.02;">🜓</div>
 
         <div class="lang-toggle">
             <span class="lang-label">RU</span>
@@ -81,7 +77,7 @@
                 </div>
                 <input type="range" id="gameCountSlider" min="5" max="300" value="25" step="1" class="custom-slider">
                 <div class="slider-warning" id="sliderWarning" data-i18n="sliderWarning">
-                    ⚠️ При увеличении количества игр возрастает время анализа ИИ и расход энергии!
+                    При увеличении количества игр возрастает время анализа ИИ и расход энергии!
                 </div>
                 <div class="slider-note" id="sliderNote" data-i18n="sliderNote">
                     * Итоговое количество энергии высчитывается после получения библиотеки.
@@ -92,12 +88,11 @@
                 <div class="actions">
 
                     <div class="ai-sort-dropdown" id="aiSortDropdown">
-                        <button id="aiSortTrigger" class="social-btn ai-sort-trigger" data-i18n="autoSort">⚡
-                            Авто-сортировка</button>
+                        <button id="aiSortTrigger" class="social-btn ai-sort-trigger" data-i18n="autoSort">Авто-сортировка</button>
                         <div class="ai-sort-menu" id="aiSortMenu">
 
                             <div class="ai-sort-menu-section" style="display: flex; justify-content: space-between; align-items: center;">
-                                <span class="slider-cost" id="energyCostLabel">Расход энергии: 1 ⚡</span>
+                                <span class="slider-cost" id="energyCostLabel">Расход энергии: 1</span>
                                 <button class="ai-sort-close-btn" id="aiSortCloseBtn" aria-label="Close">&times;</button>
                             </div>
                             <div class="ai-sort-menu-section limits-row">
@@ -125,13 +120,12 @@
                             <div class="ai-sort-menu-section" id="turnstile-container"
                                 style="display: none; justify-content: center; margin-bottom: 10px;"></div>
                             <div class="ai-sort-menu-section">
-                                <button id="aiTierBtn" class="social-btn ai-run-btn" data-i18n="autoSort">⚡ Запустить
-                                    сортировку</button>
+                                <button id="aiTierBtn" class="social-btn ai-run-btn" data-i18n="autoSort">Запустить сортировку</button>
                             </div>
                         </div>
                     </div>
 
-                    <button id="exportBtn" class="social-btn" data-i18n="saveImage">📸 Сохранить изображение</button>
+                    <button id="exportBtn" class="social-btn" data-i18n="saveImage">Сохранить изображение</button>
                 </div>
             </div>
 

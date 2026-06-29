@@ -11,10 +11,22 @@ import {
 document.addEventListener('DOMContentLoaded', () => {
     initDOM();
 
-    let lang = localStorage.getItem('stl_lang');
+    const urlParams = new URLSearchParams(window.location.search);
+    let lang = urlParams.get('lang');
+    if (lang) {
+        lang = lang.toLowerCase() === 'ru' ? 'ru' : 'en';
+    } else {
+        lang = localStorage.getItem('stl_lang');
+    }
+
     if (!lang) {
-        const sysLang = (navigator.language || navigator.userLanguage || 'ru').toLowerCase();
-        lang = /^(ru|be|uk|kk)/.test(sysLang) ? 'ru' : 'en';
+        const sysLang = (navigator.language || navigator.userLanguage || '').toLowerCase();
+        const cisLangRegex = /^(ru|be|uk|kk|uz|ky|tg|hy|az|mo|tk|ka)/i;
+        let isCis = cisLangRegex.test(sysLang);
+        if (!isCis && navigator.languages) {
+            isCis = navigator.languages.some(l => cisLangRegex.test(l));
+        }
+        lang = isCis ? 'ru' : 'en';
     }
     setLanguage(lang);
 
