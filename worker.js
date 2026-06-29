@@ -195,7 +195,11 @@ export default {
       if (!env.LIMITS_KV) {
         return jsonRes({ error: 'CRITICAL: LIMITS_KV database is not bound in Cloudflare Settings! Please follow step 6 in README.' }, 500);
       }
-      const cost = Math.ceil((body.game_count || 25) / 25);
+      const gameCount = body.game_count || 25;
+      const categoryCount = body.category_count || 6;
+      const tierCostAddition = categoryCount > 6 ? (categoryCount - 6) * 2 : 0;
+      const cost = Math.ceil(gameCount / 25) + tierCostAddition;
+
       const userUsed = await getUsage(env.LIMITS_KV, userKey);
       const globalUsed = await getUsage(env.LIMITS_KV, globalKey);
 

@@ -1,4 +1,4 @@
-﻿import { state } from 'config';
+import { state } from 'config';
 
 export function getI18n() {
     return state.currentLang === 'en' ? i18n.en : i18n.ru;
@@ -20,14 +20,18 @@ export const i18n = {
         loadBtn: "Загрузить игры",
         autoSort: "Авто-сортировка",
         saveImage: "Сохранить изображение",
+        editCategoriesTitle: "Настройка категорий",
+        addCategoryBtn: "Добавить",
+        resetCategoriesBtn: "Сбросить",
+        saveCategoriesBtn: "Сохранить",
         warningNote: "Примечание: Автоматическое распределение создано исключительно в развлекательных целях на базе Gemma 4. Алгоритм может фантазировать и выдавать неточные оценки.",
         aiEnergy: "Энергия ИИ",
         networkLimit: "Лимит Сети",
         gameList: "Список игр",
         gamesAppearHere: "Игры появятся здесь.",
         resetTimeText: "Сброс: через {hours} ч.",
-        promptSystem: 'Ты - прожжённый геймер-эксперт. Твоя задача: распределить ВСЕ игры по тирам (s, a, b, c, d, f) и дать краткий живой отзыв (до 5 слов) на русском языке без дефисных терминов. Постарайся придумать уникальный комментарий к каждой игре (пиши образно, например: "Шедевр на все времена", "Гринд ради гринда"). Распределяй игры естественно и критично относительно друг друга. Отвечай СТРОГО в JSON без лишнего текста.',
-        promptUser: 'Классифицируй абсолютно ВСЕ игры. Для каждой укажи appid, тир (s, a, b, c, d, f) и вердикт на русском (до 5 слов).',
+        promptSystem: 'Ты - прожжённый геймер-эксперт. Твоя задача: распределить ВСЕ игры по тирам ({tiers}) и дать краткий живой отзыв (до 5 слов) на русском языке без дефисных терминов. Постарайся придумать уникальный комментарий к каждой игре (пиши образно, например: "Шедевр на все времена", "Гринд ради гринда"). Распределяй игры естественно и критично относительно друг друга, используя весь спектр доступных тиров, включая самые низшие категории для худших или надоевших игр. Отвечай СТРОГО в JSON без лишнего текста.',
+        promptUser: 'Классифицируй абсолютно ВСЕ игры. Для каждой укажи appid, тир ({tiers}) и вердикт на русском (до 5 слов).',
         statusPleaseEnter: 'Пожалуйста, введите ваш Steam ID или ссылку на профиль.',
         statusResolving: 'Определение профиля Steam...',
         statusLoading: 'Загрузка списка игр...',
@@ -54,7 +58,10 @@ export const i18n = {
         errorRateLimitGlobal: "Превышен общий лимит запросов сети. Пожалуйста, подождите немного.",
         tsChecking: "Проверка безопасности...",
         tsScriptMissing: "Скрипт защиты (Turnstile) не загрузился. Проверьте блокировщики рекламы.",
-        tsFailed: "Ошибка проверки безопасности (Turnstile)."
+        tsFailed: "Ошибка проверки безопасности (Turnstile).",
+        warningTitle: "Перед настройкой категорий",
+        warningText: "Нецензурные или бессмысленные названия тиров могут быть заблокированы фильтрами ИИ или привести к некорректному распределению игр по категориям.",
+        warningOkBtn: "Понятно, к настройкам"
     },
     en: {
         pageTitle: "Steam Tier List Builder",
@@ -71,14 +78,18 @@ export const i18n = {
         loadBtn: "Load Games",
         autoSort: "Auto-Sort",
         saveImage: "Save Image",
+        editCategoriesTitle: "Category Settings",
+        addCategoryBtn: "Add Category",
+        resetCategoriesBtn: "Reset",
+        saveCategoriesBtn: "Save",
         warningNote: "Note: The automatic sorting is made purely for entertainment using Gemma 4. The algorithm can hallucinate and give inaccurate ratings.",
         aiEnergy: "AI Energy",
         networkLimit: "Network Limit",
         gameList: "Game List",
         gamesAppearHere: "Games will appear here.",
         resetTimeText: "Reset: in {hours} h.",
-        promptSystem: 'You are a hardcore gamer and expert. Your task: distribute ALL games into tiers (s, a, b, c, d, f) and write a short lively review (max 5 words) in natural English. Avoid dry genre tags - write expressive gaming comments instead. Try to come up with a unique comment for each game (e.g., "Absolute all-time masterpiece", "Pure grind for hours"). Grade naturally and critically relative to each other. Reply STRICTLY in JSON without extra text.',
-        promptUser: 'Classify absolutely ALL listed games. For each game, provide its appid, tier (s, a, b, c, d, f), and short verdict (up to 5 words).',
+        promptSystem: 'You are a hardcore gamer and expert. Your task: distribute ALL games into tiers ({tiers}) and write a short lively review (max 5 words) in natural English. Avoid dry genre tags - write expressive gaming comments instead. Try to come up with a unique comment for each game (e.g., "Absolute all-time masterpiece", "Pure grind for hours"). Grade naturally and critically relative to each other, using the full spectrum of available tiers, including the lowest categories for the worst or most boring games. Reply STRICTLY in JSON without extra text.',
+        promptUser: 'Classify absolutely ALL listed games. For each game, provide its appid, tier ({tiers}), and short verdict (up to 5 words).',
         statusPleaseEnter: 'Please enter your Steam ID or profile link.',
         statusResolving: 'Resolving Steam Profile...',
         statusLoading: 'Loading games list...',
@@ -105,6 +116,9 @@ export const i18n = {
         errorRateLimitGlobal: "Global network request limit exceeded. Please wait a moment.",
         tsChecking: "Security check...",
         tsScriptMissing: "Security script (Turnstile) failed to load. Check your adblocker.",
-        tsFailed: "Security check failed (Turnstile)."
+        tsFailed: "Security check failed (Turnstile).",
+        warningTitle: "Before editing categories",
+        warningText: "Offensive or meaningless tier names may be blocked by the AI filters or cause games to be distributed across categories incorrectly.",
+        warningOkBtn: "Got it, to settings"
     }
 };

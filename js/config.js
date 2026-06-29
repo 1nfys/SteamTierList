@@ -19,9 +19,27 @@ export const getHeaders = () => {
     return h;
 };
 
+export const DEFAULT_CATEGORIES = [
+    { id: 's', label: 'S', color: '#ff2020' },
+    { id: 'a', label: 'A', color: '#ff8000' },
+    { id: 'b', label: 'B', color: '#F9FF10' },
+    { id: 'c', label: 'C', color: '#00ff00' },
+    { id: 'd', label: 'D', color: '#0060ff' },
+    { id: 'f', label: 'F', color: '#7f7f7f' }
+];
+
+let savedCats = null;
+try {
+    const raw = localStorage.getItem('stl_categories');
+    if (raw) savedCats = JSON.parse(raw);
+} catch (e) {
+    console.error('Failed to parse saved categories', e);
+}
+
 export const state = {
     allGames: [],
     rawSteamGames: [],
     draggedItem: null,
-    currentLang: 'ru'
+    currentLang: 'ru',
+    categories: savedCats || DEFAULT_CATEGORIES
 };

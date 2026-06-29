@@ -9,9 +9,9 @@
     <meta http-equiv="Expires" content="0">
     <meta name="description"
         content="Создайте свой уникальный тир-лист (рейтинг) игр Steam с помощью ИИ. Быстрая загрузка библиотеки и автоматическая сортировка.">
-    <link rel="alternate" hreflang="x-default" href="https://1nfys.github.io/">
-    <link rel="alternate" hreflang="ru" href="https://1nfys.github.io/?lang=ru">
-    <link rel="alternate" hreflang="en" href="https://1nfys.github.io/?lang=en">
+    <link rel="alternate" hreflang="x-default" href="https://1nfys.github.io/SteamTierList/">
+    <link rel="alternate" hreflang="ru" href="https://1nfys.github.io/SteamTierList/?lang=ru">
+    <link rel="alternate" hreflang="en" href="https://1nfys.github.io/SteamTierList/?lang=en">
     <meta name="keywords" content="steam, tier list, тир лист, рейтинг игр, ai, нейросеть">
     <title>Конструктор тир-листов Steam</title>
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
@@ -55,7 +55,7 @@
         </a>
 
         <header class="header-section">
-            <h1>Steam Tier List <span class="h1-sub">by 1nfys</span></h1>
+            <h1>Steam Tier List<span class="h1-sub">by 1nfys</span></h1>
             <p class="tagline" data-i18n="tagline">Введите ваш Steam ID для загрузки списка игр.</p>
 
             <div class="input-group">
@@ -182,6 +182,31 @@
                 <span class="cf-status-text" style="color: #FFFFFF;">Render Proxy</span>
             </a>
         </footer>
+    </div>
+
+    <div id="categoriesModal" class="categories-modal hidden">
+        <div class="categories-modal-content">
+            <div id="categoriesWarningOverlay" class="categories-warning-overlay">
+                <div class="categories-warning-box">
+                    <h3 data-i18n="warningTitle">Перед настройкой категорий</h3>
+                    <p data-i18n="warningText">Нецензурные или бессмысленные названия тиров могут быть заблокированы фильтрами ИИ или привести к некорректному распределению игр по категориям.</p>
+                    <button id="warningOkBtn" class="social-btn save-btn" style="width: 100%;" data-i18n="warningOkBtn">Понятно, к настройкам -></button>
+                </div>
+            </div>
+            <div id="categoriesModalBody" class="categories-modal-body">
+                <div class="categories-modal-header">
+                    <h3 data-i18n="editCategoriesTitle">Настройка категорий</h3>
+                    <button id="closeCategoriesBtn" class="categories-close-btn">&times;</button>
+                </div>
+                <div class="categories-list" id="modalCategoriesList">
+                </div>
+                <div class="categories-modal-actions">
+                    <button id="resetCategoriesBtn" class="social-btn reset-btn" data-i18n="resetCategoriesBtn">Сбросить</button>
+                    <button id="addCategoryBtn" class="social-btn" data-i18n="addCategoryBtn">Добавить</button>
+                    <button id="saveCategoriesBtn" class="social-btn save-btn" data-i18n="saveCategoriesBtn">Сохранить</button>
+                </div>
+            </div>
+        </div>
     </div>
 
 </body>

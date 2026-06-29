@@ -5,11 +5,14 @@ import { callAI, parseAIResponse } from 'ai';
 import {
     dom, initDOM, setStatus, checkWorkerStatus,
     updateSliderUI, updateAIResourceUI, setLanguage,
-    renderGames, distributeGamesFromAI
+    renderGames, distributeGamesFromAI,
+    renderTierList, initCategoriesManager
 } from 'ui';
 
 document.addEventListener('DOMContentLoaded', () => {
     initDOM();
+    renderTierList();
+    initCategoriesManager();
 
     const urlParams = new URLSearchParams(window.location.search);
     let lang = urlParams.get('lang');
@@ -133,12 +136,26 @@ document.addEventListener('DOMContentLoaded', () => {
         document.querySelectorAll('.game-item').forEach(item => item.classList.add('ai-sorting'));
 
         try {
+            const categoryKeys = state.categories.map(c => c.id).join(', ');
+            const categoryListDescription = state.categories.map(c => `"${c.id}" (${c.label})`).join(', ');
+
+            const systemPrompt = getI18n().promptSystem
+                .replace('{tiers}', categoryKeys)
+                .replace('(s, a, b, c, d, f)', `(${categoryKeys})`)
+                .replace('(S, A, B, C, D, F)', `(${categoryKeys.toUpperCase()})`);
+
+            const userPrompt = getI18n().promptUser
+                .replace('{tiers}', categoryKeys)
+                .replace('(s, a, b, c, d, f)', `(${categoryKeys})`)
+                .replace('(S, A, B, C, D, F)', `(${categoryKeys.toUpperCase()})`)
+                + `\n\nИспользуй только эти тиры: ${categoryListDescription}.`;
+
             const gamesText = state.allGames.map(g => `${g.appid}: "${g.name}"`).join('\n');
             const messages = [
-                { role: 'system', content: getI18n().promptSystem },
+                { role: 'system', content: systemPrompt },
                 {
                     role: 'user',
-                    content: `${getI18n().promptUser}\n\nФормат ответа JSON:\n{\n  "games": [\n    {\n      "appid": 12345,\n      "tier": "s",\n      "verdict": "краткий вердикт"\n    }\n  ]\n}\n\nСписок игр:\n${gamesText}`
+                    content: `${userPrompt}\n\nФормат ответа JSON:\n{\n  "games": [\n    {\n      "appid": 12345,\n      "tier": "${state.categories[0].id}",\n      "verdict": "краткий вердикт"\n    }\n  ]\n}\n\nСписок игр:\n${gamesText}`
                 }
             ];
 
@@ -160,27 +177,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    dom.dropzones.forEach(zone => {
-        zone.addEventListener('dragover', e => {
-            e.preventDefault();
-            e.dataTransfer.dropEffect = 'move';
-            zone.classList.add('drag-over');
-        });
-        zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
-        zone.addEventListener('drop', e => {
-            e.preventDefault();
-            zone.classList.remove('drag-over');
-            zone.querySelector('.empty-pool-text')?.remove();
-
-            if (state.draggedItem) {
-                zone.appendChild(state.draggedItem);
-                const newTier = zone.getAttribute('data-tier');
-                if (newTier && newTier !== 'pool') {
-                    state.draggedItem.setAttribute('data-tier', newTier);
-                }
-            }
-        });
-    });
 
     dom.exportBtn.addEventListener('click', () => {
         setStatus('Генерация изображения...', 'loading');
@@ -188,6 +184,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const targetElement = document.querySelector('.tier-list-container');
         if (!targetElement) return;
+
+        const gearBtn = document.getElementById('editCategoriesBtn');
+        if (gearBtn) gearBtn.style.display = 'none';
 
         html2canvas(targetElement, { backgroundColor: '#0c0c0e', scale: 1.5, useCORS: true, logging: false })
             .then(canvas => {
@@ -197,11 +196,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 link.click();
                 setStatus('Изображение успешно скачано!', 'success');
                 dom.exportBtn.disabled = false;
+                if (gearBtn) gearBtn.style.display = '';
             })
             .catch(err => {
                 console.error(err);
                 setStatus('Не удалось сгенерировать изображение.', 'error');
                 dom.exportBtn.disabled = false;
+                if (gearBtn) gearBtn.style.display = '';
             });
     });
 });

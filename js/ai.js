@@ -2,7 +2,8 @@ import { PROXY_BASE, state, getHeaders, TURNSTILE_SITEKEY } from 'config';
 import { getI18n } from 'i18n';
 
 export function parseMarkdownFallback(text) {
-    const tierMap = new Map([['s', []], ['a', []], ['b', []], ['c', []], ['d', []], ['f', []]]);
+    const categoryIds = state.categories.map(c => c.id.toLowerCase());
+    const tierMap = new Map(categoryIds.map(id => [id, []]));
     const reasonsMap = new Map();
     let currentTier = null;
 
@@ -10,19 +11,20 @@ export function parseMarkdownFallback(text) {
         const trimmed = line.trim();
         if (!trimmed) continue;
 
-        const lineWithTierMatch = trimmed.match(/^\*?\s*(\d+)\s*[:.-]\s*([^(+-]+)(?:\(([^)]+)\))?\s*(?:->|=>|->\s*Tier|=>\s*Tier)\s*([SABCDFsabcdef](?:\s+or\s+[SABCDFsabcdef])?)/i);
+        const categoryPattern = categoryIds.map(id => id.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')).join('|');
+        const lineWithTierMatch = trimmed.match(new RegExp(`^\\*?\\s*(\\d+)\\s*[:.-]\\s*([^(+-]+)(?:\\(([^)]+)\\))?\\s*(?:->|=>|->\\s*Tier|=>\\s*Tier)\\s*(${categoryPattern})`, 'i'));
         if (lineWithTierMatch) {
             const appid = Number(lineWithTierMatch[1]);
-            const reason = lineWithTierMatch[3] ? lineWithTierMatch[3].trim() : 'Интересная игра в коллекции';
-            const tierChar = lineWithTierMatch[4].trim().charAt(0).toLowerCase();
-            if (['s', 'a', 'b', 'c', 'd', 'f'].includes(tierChar)) {
+            const reason = lineWithTierMatch[3] ? lineWithTierMatch[3].trim() : (getI18n().defaultVerdict || 'Приятная игра в коллекции');
+            const tierChar = lineWithTierMatch[4].trim().toLowerCase();
+            if (categoryIds.includes(tierChar)) {
                 tierMap.get(tierChar).push(appid);
                 reasonsMap.set(appid, reason);
                 continue;
             }
         }
 
-        const tierHeaderMatch = trimmed.match(/^\*?\*?\s*(S|A|B|C|D|F)-Tier\s*(?:\([^)]*\))?\s*:?\*?\*?/i);
+        const tierHeaderMatch = trimmed.match(new RegExp(`^\\*?\\*?\\s*(${categoryPattern})-Tier\\s*(?:\\([^)]*\\))?\\s*:?\\*?\\*?`, 'i'));
         if (tierHeaderMatch) {
             currentTier = tierHeaderMatch[1].toLowerCase();
             continue;
@@ -32,8 +34,10 @@ export function parseMarkdownFallback(text) {
         if (gameMatch && currentTier) {
             const appid = Number(gameMatch[1]);
             const reason = gameMatch[3] ? gameMatch[3].trim() : '';
-            tierMap.get(currentTier).push(appid);
-            if (reason) reasonsMap.set(appid, reason);
+            if (tierMap.has(currentTier)) {
+                tierMap.get(currentTier).push(appid);
+                if (reason) reasonsMap.set(appid, reason);
+            }
         }
     }
     return { tierMap, reasonsMap };
@@ -55,7 +59,9 @@ export async function callAI(messages, updateStatusCallback) {
     let limitReached = false;
     try {
         const stats = await fetchStats();
-        const energyCost = Math.ceil(state.allGames.length / 25);
+        const numCats = state.categories ? state.categories.length : 6;
+        const tierCostAddition = numCats > 6 ? (numCats - 6) * 2 : 0;
+        const energyCost = Math.ceil(state.allGames.length / 25) + tierCostAddition;
         if (stats.user_used + energyCost > stats.user_limit) limitReached = true;
     } catch (e) {
         console.error('Failed to pre-check stats:', e);
@@ -98,33 +104,42 @@ export async function callAI(messages, updateStatusCallback) {
         }
 
         updateStatusCallback(getI18n().aiRequestCf, 'loading');
+        const requestPayload = {
+            messages,
+            game_count: state.allGames.length,
+            category_count: state.categories.length,
+            chat_template_kwargs: { enable_thinking: false },
+            response_format: { type: 'json_object' },
+            model: '@cf/google/gemma-4-26b-a4b-it',
+            lang: state.currentLang,
+            turnstile_token: turnstileToken
+        };
+        console.log("AI API Request:", requestPayload);
+
         const response = await fetch(`${PROXY_BASE}/api/workers-ai`, {
             method: 'POST',
             headers: getHeaders(),
-            body: JSON.stringify({
-                messages,
-                game_count: state.allGames.length,
-                chat_template_kwargs: { enable_thinking: false },
-                response_format: { type: 'json_object' },
-                model: '@cf/google/gemma-4-26b-a4b-it',
-                lang: state.currentLang,
-                turnstile_token: turnstileToken
-            })
+            body: JSON.stringify(requestPayload)
         });
         if (response.ok) {
             const data = await response.json();
+            console.log("AI API Response Data:", data);
             const choice = data.choices?.[0];
             if (choice?.message) {
                 const msg = choice.message;
                 if (msg.refusal) {
+                    console.error("AI Refusal:", msg.refusal);
                     throw new Error("AI refused: " + msg.refusal);
                 } else if (msg.content) {
+                    console.log("AI Generated Content:", msg.content);
                     return { content: msg.content, source: 'cf' };
                 }
             }
         } else {
+            console.error("AI API Error HTTP Status:", response.status);
             try {
                 const errData = await response.json();
+                console.error("AI API Error Body:", errData);
                 if (errData.error === 'Too many requests') {
                     throw new Error(getI18n().errorRateLimitIp || "Превышен лимит запросов с вашего IP.");
                 } else if (errData.error === 'Global limit reached') {
@@ -152,7 +167,8 @@ export function parseAIResponse(aiText) {
     const jsonMatch = cleanedText.match(/\{[\s\S]*\}/);
     if (!jsonMatch) throw new Error(getI18n().errorNoJson);
 
-    let tierMap = new Map([['s', []], ['a', []], ['b', []], ['c', []], ['d', []], ['f', []]]);
+    const categoryIds = state.categories.map(c => c.id.toLowerCase());
+    let tierMap = new Map(categoryIds.map(id => [id, []]));
     let reasonsMap = new Map();
     let parsedSuccess = false;
 
@@ -161,7 +177,7 @@ export function parseAIResponse(aiText) {
         if (parsed.games && Array.isArray(parsed.games)) {
             parsed.games.forEach(game => {
                 const lTier = String(game.tier || '').toLowerCase().trim();
-                if (['s', 'a', 'b', 'c', 'd', 'f'].includes(lTier)) {
+                if (categoryIds.includes(lTier)) {
                     tierMap.get(lTier).push(Number(game.appid));
                 }
                 if (game.verdict || game.reason) {
@@ -175,7 +191,7 @@ export function parseAIResponse(aiText) {
 
             Object.entries(rawTiers).forEach(([key, val]) => {
                 const lKey = key.toLowerCase();
-                if (['s', 'a', 'b', 'c', 'd', 'f'].includes(lKey)) {
+                if (categoryIds.includes(lKey)) {
                     tierMap.set(lKey, Array.isArray(val) ? val.map(Number) : []);
                 }
             });
@@ -193,7 +209,8 @@ export function parseAIResponse(aiText) {
         if (gameBlockMatches && gameBlockMatches.length > 0) {
             gameBlockMatches.forEach(block => {
                 const idMatch = block.match(/"appid"\s*:\s*(\d+)/i);
-                const tierMatch = block.match(/"tier"\s*:\s*"([sabcdef])"/i);
+                const categoryPattern = categoryIds.map(id => id.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')).join('|');
+                const tierMatch = block.match(new RegExp(`"tier"\\s*:\\s*"(${categoryPattern})"`, 'i'));
                 const verdictMatch = block.match(/"verdict"\s*:\s*"([^"]+)"/i) || block.match(/"reason"\s*:\s*"([^"]+)"/i);
 
                 if (idMatch && tierMatch) {
@@ -210,7 +227,8 @@ export function parseAIResponse(aiText) {
     }
 
     if (!parsedSuccess) {
-        const regex = /"(s|a|b|c|d|f)"\s*:\s*\[([^\]]*)\]/ig;
+        const categoryPattern = categoryIds.map(id => id.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')).join('|');
+        const regex = new RegExp(`"(${categoryPattern})"` + '\\s*:\\s*\\[([^\\]]*)\\]', 'ig');
         let match;
         while ((match = regex.exec(cleanedText)) !== null) {
             const t = match[1].toLowerCase();
@@ -237,7 +255,7 @@ export function parseAIResponse(aiText) {
             if (mdTotal > 0) { tierMap = mdResult.tierMap; reasonsMap = mdResult.reasonsMap; totalAssigned = mdTotal; }
         }
     }
-    if (totalAssigned === 0) throw new Error(getI18n().errorEmptyDistribution);
+    if (totalAssigned === 0) throw new Error(getI18n().errorEmptyDistribution || "ИИ вернул пустой список распределения.");
 
     return { tierMap, reasonsMap };
 }

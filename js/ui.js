@@ -1,8 +1,10 @@
-﻿import { state, PROXY_BASE, getHeaders } from 'config';
+import { state, PROXY_BASE, getHeaders, DEFAULT_CATEGORIES } from 'config';
 import { i18n, getI18n } from 'i18n';
 import { fetchStats } from 'ai';
 
 export const dom = {};
+
+let hasShownCategoriesWarning = false;
 
 export function initDOM() {
     dom.steamIdInput = document.getElementById('steamIdInput');
@@ -49,7 +51,9 @@ export async function checkWorkerStatus() {
 export function updateSliderUI() {
     if (!dom.slider) return;
     const count = parseInt(dom.slider.value);
-    const cost = Math.ceil(count / 25);
+    const numCats = state.categories ? state.categories.length : 6;
+    const tierCostAddition = numCats > 6 ? (numCats - 6) * 2 : 0;
+    const cost = Math.ceil(count / 25) + tierCostAddition;
 
     const countLabel = document.getElementById('gameCountLabel');
     const costLabel = document.getElementById('energyCostLabel');
@@ -60,7 +64,7 @@ export function updateSliderUI() {
     if (costLabel) {
         const isLoaded = (state.allGames && state.allGames.length > 0);
         if (isLoaded) {
-            const loadedCost = Math.ceil(state.allGames.length / 25);
+            const loadedCost = Math.ceil(state.allGames.length / 25) + tierCostAddition;
             costLabel.textContent = (getI18n().finalCost || "Итоговый расход энергии: {cost}").replace('{cost}', loadedCost);
         } else {
             costLabel.textContent = (getI18n().estimatedCost || "Ожидаемый расход энергии: {cost}").replace('{cost}', cost);
@@ -172,11 +176,18 @@ export function renderGames(gamesList) {
         gameEl.draggable = true;
         gameEl.id = `game-${game.appid}`;
         const img = document.createElement('img');
-        img.src = `https://steamcdn-a.akamaihd.net/steam/apps/${game.appid}/capsule_184x69.jpg`;
+        img.src = `https://cdn.cloudflare.steamstatic.com/steam/apps/${game.appid}/capsule_184x69.jpg`;
         img.alt = game.name;
         img.onerror = function() {
-            this.onerror = null;
-            this.src = `https://steamcdn-a.akamaihd.net/steam/apps/${game.appid}/header.jpg`;
+            if (this.src.includes('cdn.cloudflare.steamstatic.com')) {
+                this.src = `https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/${game.appid}/capsule_184x69.jpg`;
+            } else if (this.src.includes('shared.fastly.steamstatic.com')) {
+                this.src = `https://steamcdn-a.akamaihd.net/steam/apps/${game.appid}/capsule_184x69.jpg`;
+            } else {
+                this.onerror = null;
+                this.style.display = 'none';
+                gameEl.classList.add('img-failed');
+            }
         };
 
         const title = document.createElement('div');
@@ -209,7 +220,10 @@ export function distributeGamesFromAI(tierMap, reasonsMap = new Map()) {
     dom.gamePool.querySelector('.empty-pool-text')?.remove();
 
     const assignedGames = new Set();
-    const normalizedTierMap = new Map([['s', []], ['a', []], ['b', []], ['c', []], ['d', []], ['f', []]]);
+    const normalizedTierMap = new Map();
+    state.categories.forEach(cat => {
+        normalizedTierMap.set(cat.id.toLowerCase(), []);
+    });
 
     for (let [key, valArr] of tierMap.entries()) {
         const lKey = key.toLowerCase();
@@ -241,7 +255,10 @@ export function distributeGamesFromAI(tierMap, reasonsMap = new Map()) {
         if (matchedTier) {
             normalizedTierMap.get(matchedTier).push(id);
         } else {
-            normalizedTierMap.get('c').push(id);
+            const fallbackTierId = state.categories.at(Math.floor(state.categories.length / 2))?.id || state.categories.at(0)?.id;
+            if (fallbackTierId) {
+                normalizedTierMap.get(fallbackTierId.toLowerCase())?.push(id);
+            }
             reasonsMap.set(id, getI18n().aiShyToEvaluate || "ИИ постеснялся оценить этот шедевр");
         }
     });
@@ -292,8 +309,305 @@ export function distributeGamesFromAI(tierMap, reasonsMap = new Map()) {
 
     setTimeout(() => {
         dom.gamePool.querySelectorAll('.game-item').forEach(game => {
-            const cTier = document.querySelector('.tier-dropzone[data-tier="c"]');
-            if (cTier) cTier.appendChild(game);
+            const fallbackTier = state.categories.at(Math.floor(state.categories.length / 2))?.id || state.categories.at(0)?.id;
+            const fallbackZone = document.querySelector(`.tier-dropzone[data-tier="${fallbackTier}"]`);
+            if (fallbackZone) fallbackZone.appendChild(game);
         });
     }, 1200);
+}
+
+function getContrastColor(hexColor) {
+    if (!hexColor || hexColor.charAt(0) !== '#') return 'rgba(0,0,0,0.9)';
+    const r = parseInt(hexColor.substr(1, 2), 16);
+    const g = parseInt(hexColor.substr(3, 2), 16);
+    const b = parseInt(hexColor.substr(5, 2), 16);
+    const yiq = ((r * 299) + (g * 587) + (b * 114)) / 1000;
+    return (yiq >= 128) ? 'rgba(0,0,0,0.9)' : 'rgba(255,255,255,0.9)';
+}
+
+export function bindDropzoneListeners() {
+    const dropzones = document.querySelectorAll('.tier-dropzone');
+    dropzones.forEach(zone => {
+        const newZone = zone.cloneNode(true);
+        zone.parentNode.replaceChild(newZone, zone);
+        
+        newZone.addEventListener('dragover', e => {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+            newZone.classList.add('drag-over');
+        });
+        newZone.addEventListener('dragleave', () => newZone.classList.remove('drag-over'));
+        newZone.addEventListener('drop', e => {
+            e.preventDefault();
+            newZone.classList.remove('drag-over');
+            newZone.querySelector('.empty-pool-text')?.remove();
+
+            if (state.draggedItem) {
+                newZone.appendChild(state.draggedItem);
+                const newTier = newZone.getAttribute('data-tier');
+                if (newTier && newTier !== 'pool') {
+                    state.draggedItem.setAttribute('data-tier', newTier);
+                } else {
+                    state.draggedItem.removeAttribute('data-tier');
+                }
+            }
+        });
+    });
+    dom.dropzones = document.querySelectorAll('.tier-dropzone');
+    dom.gamePool = document.getElementById('gamePool');
+}
+
+export function renderTierList() {
+    const container = document.querySelector('.tier-list-container');
+    if (!container) return;
+
+    const savedGames = new Map();
+    state.categories.forEach(cat => {
+        savedGames.set(cat.id, []);
+    });
+
+    document.querySelectorAll('.tier-row').forEach(row => {
+        const dz = row.querySelector('.tier-dropzone');
+        if (!dz) return;
+        const tierId = dz.getAttribute('data-tier');
+        const games = Array.from(dz.querySelectorAll('.game-item'));
+        if (savedGames.has(tierId)) {
+            savedGames.set(tierId, games);
+        } else {
+            if (dom.gamePool) {
+                games.forEach(g => {
+                    g.removeAttribute('data-tier');
+                    g.removeAttribute('data-tooltip');
+                    g.classList.remove('has-tooltip');
+                    dom.gamePool.appendChild(g);
+                });
+            }
+        }
+    });
+
+    container.innerHTML = '';
+
+    const gearBtn = document.createElement('button');
+    gearBtn.id = 'editCategoriesBtn';
+    gearBtn.className = 'categories-gear-btn';
+    gearBtn.title = state.currentLang === 'ru' ? 'Настройки категорий' : 'Category Settings';
+    gearBtn.innerHTML = '⚙';
+    container.appendChild(gearBtn);
+
+    state.categories.forEach(cat => {
+        const row = document.createElement('div');
+        row.className = 'tier-row';
+
+        const label = document.createElement('div');
+        label.className = 'tier-label';
+        label.style.backgroundColor = cat.color;
+        label.style.color = getContrastColor(cat.color);
+        label.textContent = cat.label;
+
+        const len = cat.label.length;
+        if (len > 12) {
+            label.style.fontSize = '0.85rem';
+        } else if (len > 8) {
+            label.style.fontSize = '1.05rem';
+        } else if (len > 5) {
+            label.style.fontSize = '1.3rem';
+        } else if (len > 2) {
+            label.style.fontSize = '1.6rem';
+        } else {
+            label.style.fontSize = '2rem';
+        }
+
+        const dz = document.createElement('div');
+        dz.className = 'tier-dropzone';
+        dz.setAttribute('data-tier', cat.id);
+
+        row.appendChild(label);
+        row.appendChild(dz);
+        container.appendChild(row);
+
+        if (savedGames.has(cat.id)) {
+            savedGames.get(cat.id).forEach(game => dz.appendChild(game));
+        }
+    });
+
+    bindDropzoneListeners();
+    setupGearBtnListener();
+}
+
+function setupGearBtnListener() {
+    const gearBtn = document.getElementById('editCategoriesBtn');
+    if (gearBtn) {
+        gearBtn.onclick = () => openCategoriesModal();
+    }
+}
+
+function openCategoriesModal() {
+    const modal = document.getElementById('categoriesModal');
+    const list = document.getElementById('modalCategoriesList');
+    if (!modal || !list) return;
+
+    list.innerHTML = '';
+    
+    state.categories.forEach((cat, index) => {
+        const row = document.createElement('div');
+        row.className = 'category-edit-row';
+        row.dataset.index = index;
+
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.className = 'category-input';
+        input.name = `category_name_${index}`;
+        input.id = `category_name_${index}`;
+        input.value = cat.label;
+        input.placeholder = state.currentLang === 'ru' ? 'Имя категории...' : 'Category name...';
+
+        const colorPicker = document.createElement('input');
+        colorPicker.type = 'color';
+        colorPicker.className = 'category-color-picker';
+        colorPicker.name = `category_color_${index}`;
+        colorPicker.id = `category_color_${index}`;
+        colorPicker.value = cat.color.startsWith('#') ? cat.color : '#7f7f7f';
+
+        const deleteBtn = document.createElement('button');
+        deleteBtn.className = 'category-delete-btn';
+        deleteBtn.innerHTML = '&times;';
+        deleteBtn.addEventListener('click', () => {
+            row.remove();
+        });
+
+        row.appendChild(input);
+        row.appendChild(colorPicker);
+        row.appendChild(deleteBtn);
+        list.appendChild(row);
+    });
+
+    const warningOverlay = document.getElementById('categoriesWarningOverlay');
+    const modalBody = document.getElementById('categoriesModalBody');
+    if (warningOverlay && modalBody) {
+        if (!hasShownCategoriesWarning) {
+            warningOverlay.classList.remove('hidden');
+            modalBody.classList.add('blurred');
+            hasShownCategoriesWarning = true;
+        } else {
+            warningOverlay.classList.add('hidden');
+            modalBody.classList.remove('blurred');
+        }
+    }
+
+    modal.classList.remove('hidden');
+}
+
+export function initCategoriesManager() {
+    const modal = document.getElementById('categoriesModal');
+    const closeBtn = document.getElementById('closeCategoriesBtn');
+    const addBtn = document.getElementById('addCategoryBtn');
+    const saveBtn = document.getElementById('saveCategoriesBtn');
+    const resetBtn = document.getElementById('resetCategoriesBtn');
+    const warningOkBtn = document.getElementById('warningOkBtn');
+    const warningOverlay = document.getElementById('categoriesWarningOverlay');
+    const modalBody = document.getElementById('categoriesModalBody');
+
+    if (warningOkBtn && warningOverlay && modalBody) {
+        warningOkBtn.addEventListener('click', () => {
+            warningOverlay.classList.add('hidden');
+            modalBody.classList.remove('blurred');
+        });
+    }
+
+    if (closeBtn && modal) {
+        closeBtn.addEventListener('click', () => modal.classList.add('hidden'));
+    }
+
+    if (addBtn) {
+        addBtn.addEventListener('click', () => {
+            const list = document.getElementById('modalCategoriesList');
+            if (!list) return;
+
+            const row = document.createElement('div');
+            row.className = 'category-edit-row';
+
+            const currentIndex = document.querySelectorAll('.category-edit-row').length;
+
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.className = 'category-input';
+            input.name = `category_name_new_${currentIndex}`;
+            input.id = `category_name_new_${currentIndex}`;
+            input.value = '';
+            input.placeholder = state.currentLang === 'ru' ? 'Новая категория...' : 'New category...';
+
+            const colorPicker = document.createElement('input');
+            colorPicker.type = 'color';
+            colorPicker.className = 'category-color-picker';
+            colorPicker.name = `category_color_new_${currentIndex}`;
+            colorPicker.id = `category_color_new_${currentIndex}`;
+            
+            const colors = ['#ff2020', '#ff8000', '#F9FF10', '#00ff00', '#0060ff', '#7f7f7f', '#a855f7', '#ec4899'];
+            colorPicker.value = colors.at(Math.floor(Math.random() * colors.length));
+
+            const deleteBtn = document.createElement('button');
+            deleteBtn.className = 'category-delete-btn';
+            deleteBtn.innerHTML = '&times;';
+            deleteBtn.addEventListener('click', () => {
+                row.remove();
+            });
+
+            row.appendChild(input);
+            row.appendChild(colorPicker);
+            row.appendChild(deleteBtn);
+            list.appendChild(row);
+        });
+    }
+
+    if (saveBtn && modal) {
+        saveBtn.addEventListener('click', () => {
+            const rows = document.querySelectorAll('.category-edit-row');
+            const newCategories = [];
+            
+            rows.forEach((row, i) => {
+                const input = row.querySelector('.category-input');
+                const colorPicker = row.querySelector('.category-color-picker');
+                if (!input || !colorPicker) return;
+
+                let label = input.value.trim();
+                if (!label) {
+                    label = `Tier ${i + 1}`;
+                }
+                
+                const cleanLabel = label.toLowerCase().replace(/[^a-z0-9]/g, '');
+                const id = cleanLabel ? `${cleanLabel}_${i}` : `tier_${i}`;
+
+                newCategories.push({
+                    id: id,
+                    label: label,
+                    color: colorPicker.value
+                });
+            });
+
+            if (newCategories.length === 0) {
+                alert(state.currentLang === 'ru' ? 'Необходимо добавить хотя бы одну категорию!' : 'You must have at least one category!');
+                return;
+            }
+
+            state.categories = newCategories;
+            localStorage.setItem('stl_categories', JSON.stringify(newCategories));
+            
+            renderTierList();
+            updateSliderUI();
+            modal.classList.add('hidden');
+        });
+    }
+
+    if (resetBtn) {
+        resetBtn.addEventListener('click', () => {
+            state.categories = DEFAULT_CATEGORIES;
+            localStorage.setItem('stl_categories', JSON.stringify(DEFAULT_CATEGORIES));
+            
+            renderTierList();
+            updateSliderUI();
+            modal.classList.add('hidden');
+        });
+    }
+
+    setupGearBtnListener();
 }
