@@ -61,7 +61,19 @@ export const i18n = {
         tsFailed: "Ошибка проверки безопасности (Turnstile).",
         warningTitle: "Перед настройкой категорий",
         warningText: "Нецензурные или бессмысленные названия тиров могут быть заблокированы фильтрами ИИ или привести к некорректному распределению игр по категориям.",
-        warningOkBtn: "Понятно, к настройкам"
+        warningOkBtn: "Понятно, к настройкам",
+        categoriesSettings: "Настройки категорий",
+        categoryNamePlaceholder: "Имя категории...",
+        newCategoryPlaceholder: "Новая категория...",
+        atLeastOneCategory: "Необходимо добавить хотя бы одну категорию!",
+        wrongLocalPassword: "Неверный локальный пароль. Страница будет перезагружена.",
+        exportingImage: "Генерация изображения...",
+        exportSuccess: "Изображение успешно скачано!",
+        exportError: "Не удалось сгенерировать изображение.",
+        errorEmptyDistribution: "ИИ вернул пустой список распределения.",
+        promptTiersHint: "Используй только эти тиры: {tiers}.",
+        promptFormatHint: 'Формат ответа JSON:\n{\n  "games": [\n    {\n      "appid": 12345,\n      "tier": "{tier}",\n      "verdict": "краткий вердикт"\n    }\n  ]\n}',
+        promptGamesList: "Список игр:"
     },
     en: {
         pageTitle: "Steam Tier List Builder",
@@ -119,6 +131,18 @@ export const i18n = {
         tsFailed: "Security check failed (Turnstile).",
         warningTitle: "Before editing categories",
         warningText: "Offensive or meaningless tier names may be blocked by the AI filters or cause games to be distributed across categories incorrectly.",
-        warningOkBtn: "Got it, to settings"
+        warningOkBtn: "Got it, to settings",
+        categoriesSettings: "Category Settings",
+        categoryNamePlaceholder: "Category name...",
+        newCategoryPlaceholder: "New category...",
+        atLeastOneCategory: "You must have at least one category!",
+        wrongLocalPassword: "Invalid local password. The page will be reloaded.",
+        exportingImage: "Generating image...",
+        exportSuccess: "Image saved successfully!",
+        exportError: "Failed to generate image.",
+        errorEmptyDistribution: "The AI returned an empty distribution list.",
+        promptTiersHint: "Use only these tiers: {tiers}.",
+        promptFormatHint: 'Response format JSON:\n{\n  "games": [\n    {\n      "appid": 12345,\n      "tier": "{tier}",\n      "verdict": "short verdict"\n    }\n  ]\n}',
+        promptGamesList: "Games list:"
     }
 };

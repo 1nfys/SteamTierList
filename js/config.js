@@ -1,5 +1,5 @@
-export const PROXY_URL = 'https://stlp.onrender.com/';
-export const PROXY_BASE = PROXY_URL.replace(/\/$/, '');
+export const API_URL = 'https://stl.curly2089.workers.dev/';
+export const API_BASE = API_URL.replace(/\/$/, '');
 export const TURNSTILE_SITEKEY = '0x4AAAAAADVmLjENOqJicyxs';
 
 let localPwd = '';

@@ -1,4 +1,4 @@
-import { PROXY_BASE, state, getHeaders, TURNSTILE_SITEKEY } from 'config';
+import { API_BASE, state, getHeaders, TURNSTILE_SITEKEY } from 'config';
 import { getI18n } from 'i18n';
 
 export function parseMarkdownFallback(text) {
@@ -14,7 +14,7 @@ export function parseMarkdownFallback(text) {
         const lineWithTierMatch = trimmed.match(/^\*?\s*(\d+)\s*[:.-]\s*([^(+-]+)(?:\(([^)]+)\))?\s*(?:->|=>|->\s*Tier|=>\s*Tier)\s*(.+)/i);
         if (lineWithTierMatch) {
             const appid = Number(lineWithTierMatch[1]);
-            const reason = lineWithTierMatch[3] ? lineWithTierMatch[3].trim() : (getI18n().defaultVerdict || 'Приятная игра в коллекции');
+            const reason = lineWithTierMatch[3] ? lineWithTierMatch[3].trim() : getI18n().defaultVerdict;
             const tierChar = lineWithTierMatch[4].trim().toLowerCase();
             if (categoryIds.includes(tierChar)) {
                 tierMap.get(tierChar).push(appid);
@@ -46,10 +46,10 @@ export function parseMarkdownFallback(text) {
 }
 
 export async function fetchStats() {
-    const resp = await fetch(`${PROXY_BASE}/api/stats?_=${Date.now()}`, { headers: getHeaders() });
+    const resp = await fetch(`${API_BASE}/api/stats?_=${Date.now()}`, { headers: getHeaders() });
     if (resp.status === 401) {
         localStorage.removeItem('localPwd');
-        alert("Неверный локальный пароль. Страница будет перезагружена.");
+        alert(getI18n().wrongLocalPassword);
         location.reload();
         throw new Error('Unauthorized');
     }
@@ -70,36 +70,36 @@ export async function callAI(messages, updateStatusCallback) {
     }
 
     if (limitReached) {
-        throw new Error(getI18n().aiCfLimitReached || "Лимит энергии ИИ исчерпан.");
+        throw new Error(getI18n().aiCfLimitReached);
     }
 
     try {
         let turnstileToken = 'bypass';
         const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-        
+
         if (!isLocal) {
-            updateStatusCallback(getI18n().tsChecking || "Проверка безопасности...", 'loading');
+            updateStatusCallback(getI18n().tsChecking, 'loading');
             const container = document.getElementById('turnstile-container');
             if (container) container.style.display = 'flex';
-            
+
             turnstileToken = await new Promise((resolve, reject) => {
                 if (typeof turnstile === 'undefined') {
-                    reject(new Error(getI18n().tsScriptMissing || "Скрипт защиты не загрузился."));
+                    reject(new Error(getI18n().tsScriptMissing));
                     return;
                 }
-                
+
                 if (window.turnstileWidgetId !== undefined) {
                     turnstile.reset(window.turnstileWidgetId);
                 }
-                
+
                 window.turnstileWidgetId = turnstile.render('#turnstile-container', {
                     sitekey: TURNSTILE_SITEKEY,
-                    callback: function(token) { 
+                    callback: function(token) {
                         if (container) container.style.display = 'none';
-                        resolve(token); 
+                        resolve(token);
                     },
-                    "error-callback": function() { 
-                        reject(new Error(getI18n().tsFailed || "Ошибка проверки безопасности (Turnstile).")); 
+                    "error-callback": function() {
+                        reject(new Error(getI18n().tsFailed));
                     }
                 });
             });
@@ -117,7 +117,7 @@ export async function callAI(messages, updateStatusCallback) {
             turnstile_token: turnstileToken
         };
 
-        const response = await fetch(`${PROXY_BASE}/api/workers-ai`, {
+        const response = await fetch(`${API_BASE}/api/workers-ai`, {
             method: 'POST',
             headers: getHeaders(),
             body: JSON.stringify(requestPayload)
@@ -137,22 +137,22 @@ export async function callAI(messages, updateStatusCallback) {
             try {
                 const errData = await response.json();
                 if (errData.error === 'Too many requests') {
-                    throw new Error(getI18n().errorRateLimitIp || "Превышен лимит запросов с вашего IP.");
+                    throw new Error(getI18n().errorRateLimitIp);
                 } else if (errData.error === 'Global limit reached') {
-                    throw new Error(getI18n().errorRateLimitGlobal || "Превышен общий лимит сети.");
+                    throw new Error(getI18n().errorRateLimitGlobal);
                 } else if (errData.error) {
                     throw new Error(errData.error);
                 }
             } catch (jsonErr) {
                 if (response.status === 429) {
-                    throw new Error(getI18n().errorRateLimitIp || "Превышен лимит запросов с вашего IP.");
+                    throw new Error(getI18n().errorRateLimitIp);
                 }
                 throw jsonErr;
             }
         }
-        throw new Error(getI18n().aiCfUnavailable || "Workers AI недоступен.");
+        throw new Error(getI18n().aiCfUnavailable);
     } catch (e) {
-        throw new Error(e.message || getI18n().aiCfFailed || "Сбой Workers AI.");
+        throw new Error(e.message || getI18n().aiCfFailed);
     }
 }
 
@@ -251,7 +251,7 @@ export function parseAIResponse(aiText) {
             if (mdTotal > 0) { tierMap = mdResult.tierMap; reasonsMap = mdResult.reasonsMap; totalAssigned = mdTotal; }
         }
     }
-    if (totalAssigned === 0) throw new Error(getI18n().errorEmptyDistribution || "ИИ вернул пустой список распределения.");
+    if (totalAssigned === 0) throw new Error(getI18n().errorEmptyDistribution);
 
     return { tierMap, reasonsMap };
 }

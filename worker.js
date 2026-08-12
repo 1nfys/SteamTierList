@@ -1,7 +1,14 @@
 const G_NET_LIMIT = 500;
 const USR_DAY_LIM = 40;
+const ALLOWED_MODELS = ['@cf/google/gemma-4-26b-a4b-it'];
 const clientReqs = new Map();
 let globalReqs = [];
+
+const securityHeaders = {
+  'X-Content-Type-Options': 'nosniff',
+  'X-Frame-Options': 'DENY',
+  'Referrer-Policy': 'no-referrer'
+};
 
 const checkGlobalRateLimit = () => {
   const now = Date.now();
@@ -61,6 +68,7 @@ export default {
     const isAllowed = !origin || ['https://1nfys.github.io', 'http://localhost:3000'].includes(origin);
 
     const corsHeaders = {
+      ...securityHeaders,
       'Access-Control-Allow-Origin': isAllowed ? origin : 'https://1nfys.github.io',
       'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
       'Access-Control-Allow-Headers': 'Content-Type, Authorization, x-local-password',
@@ -70,7 +78,7 @@ export default {
     if (!isAllowed && origin !== 'https://1nfys.github.io') {
       return new Response(JSON.stringify({ error: 'Access forbidden' }), {
         status: 403,
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json', ...securityHeaders }
       });
     }
 
@@ -151,6 +159,7 @@ export default {
       const s = url.searchParams.get('steamid');
       const incFree = url.searchParams.get('include_free') === '1';
       if (!s) return jsonRes({ error: 'Missing steamid' }, 400);
+      if (!/^\d{17}$/.test(s)) return jsonRes({ error: 'Invalid steamid' }, 400);
       const safeId = encodeURIComponent(s);
       let apiTgt = `https://api.steampowered.com/IPlayerService/GetOwnedGames/v0001/?key=${env.STEAM_API_KEY || ''}&steamid=${safeId}&include_appinfo=1&format=json`;
       if (incFree) apiTgt += '&include_played_free_games=1&include_free_sub=1';
@@ -171,10 +180,12 @@ export default {
       if (!isLocal) {
         const token = body.turnstile_token;
         if (!token) return jsonRes({ error: 'Отсутствует токен безопасности (Turnstile)' }, 403);
+        if (!env.TURNSTILE_SECRET) {
+          return jsonRes({ error: 'CRITICAL: TURNSTILE_SECRET is not configured' }, 500);
+        }
 
-        const secret = env.TURNSTILE_SECRET || '1x0000000000000000000000000000000AA';
         const formData = new FormData();
-        formData.append('secret', secret);
+        formData.append('secret', env.TURNSTILE_SECRET);
         formData.append('response', token);
         formData.append('remoteip', ip);
 
@@ -209,6 +220,10 @@ export default {
       if (!env.AI) {
         return jsonRes({ error: 'Workers AI not configured' }, 503);
       }
+      const model = body.model || '@cf/google/gemma-4-26b-a4b-it';
+      if (!ALLOWED_MODELS.includes(model)) {
+        return jsonRes({ error: 'Model not allowed' }, 403);
+      }
 
       await putUsage(env.LIMITS_KV, userKey, userUsed + cost);
       await putUsage(env.LIMITS_KV, globalKey, globalUsed + cost);
@@ -222,7 +237,7 @@ export default {
         if (body.max_tokens) runOpts.max_tokens = body.max_tokens;
         if (body.response_format) runOpts.response_format = body.response_format;
 
-        const r = await env.AI.run(body.model || '@cf/google/gemma-4-26b-a4b-it', runOpts);
+        const r = await env.AI.run(model, runOpts);
         const c = r.choices?.[0]?.message?.content ||
           r.choices?.[0]?.message?.reasoning ||
           r.response ||
