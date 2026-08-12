@@ -34,11 +34,21 @@
 
 при первом открытии спросит локальный пароль (тот, что в `LOCAL_PASSWORD`).
 
+## прокси на верселе
+
+сайт ходит в воркер не напрямую, а через прокси на верселе. он подмешивает `x-proxy-secret` и подставляет реальный ip, чтобы лимиты считались правильно.
+
+1. задеплой папку `proxy` в версел
+2. добавь секрет `PROXY_SECRET` (такой же, как у воркера)
+3. запусти `vercel --prod`
+4. в `js/config.js` впиши в `API_URL` адрес прокси, например `https://steam-tier-list-tau.vercel.app/`
+
 ## как это устроено
 
 - фронт на чистом js/html/css, без фреймворков
 - бэк это cloudflare worker, он прячет ключи и держит лимиты запросов
 - steam api и нейросеть дергаются только через воркер, ключи наружу не уходят
+- сайт общается с воркером через прокси на верселе, он скрывает адрес воркера и подмешивает секрет
 
 ---
 
@@ -78,8 +88,18 @@ you need node.js and a deployed worker.
 
 it asks for the local password (the one in `LOCAL_PASSWORD`) on first open.
 
+## vercel proxy
+
+the site does not call the worker directly, it goes through a proxy on vercel. it adds `x-proxy-secret` and the real client ip so limits are counted right.
+
+1. deploy the `proxy` folder to vercel
+2. add the `PROXY_SECRET` secret (the same as the worker's)
+3. run `vercel --prod`
+4. put the proxy url into `API_URL` in `js/config.js`, for example `https://steam-tier-list-tau.vercel.app/`
+
 ## how it works
 
 - frontend is plain js/html/css, no frameworks
 - backend is a cloudflare worker that hides keys and enforces request limits
 - steam api and the ai are only reachable through the worker, keys never leave the server
+- the site talks to the worker through a proxy on vercel, it hides the worker url and adds the secret

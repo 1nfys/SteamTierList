@@ -34,16 +34,16 @@ export function setStatus(msg, type) {
 
 export async function checkWorkerStatus() {
     const workerDot = document.getElementById('workerStatusDot');
-    if (workerDot) workerDot.className = 'cf-status-dot checking';
+    if (workerDot) workerDot.className = 'vc-status-dot checking';
 
     try {
         const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 5000);
+        const timeout = setTimeout(() => controller.abort(), 15000);
         const resp = await fetch(`${API_BASE}/api/stats?_=${Date.now()}`, { signal: controller.signal, headers: getHeaders() });
         clearTimeout(timeout);
-        if (workerDot) workerDot.className = resp.ok ? 'cf-status-dot online' : 'cf-status-dot offline';
+        if (workerDot) workerDot.className = resp.ok ? 'vc-status-dot online' : 'vc-status-dot offline';
     } catch (e) {
-        if (workerDot) workerDot.className = 'cf-status-dot offline';
+        if (workerDot) workerDot.className = 'vc-status-dot offline';
     }
 }
 

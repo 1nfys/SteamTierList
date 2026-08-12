@@ -824,7 +824,7 @@ input[type="text"]::placeholder {
     letter-spacing: 0.1em;
 }
 
-.cf-status-badge {
+.vc-status-badge {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -843,21 +843,21 @@ input[type="text"]::placeholder {
     transition: border-color 0s, color 0s, box-shadow 0s;
 }
 
-.cf-status-badge:hover {
+.vc-status-badge:hover {
     border-color: var(--accent);
     background: #000;
     color: var(--accent);
     box-shadow: 2px 2px 0px var(--accent);
 }
 
-.cf-status-dot {
+.vc-status-dot {
     width: 7px;
     height: 7px;
     border-radius: 0;
     flex-shrink: 0;
 }
 
-.cf-status-dot.checking {
+.vc-status-dot.checking {
     background: transparent;
     border: 2px solid #F9FF10;
     border-top-color: transparent;
@@ -870,7 +870,7 @@ input[type="text"]::placeholder {
     }
 }
 
-.cf-status-dot.online {
+.vc-status-dot.online {
     background: #00ff00;
     border: none;
     animation: statusPing 2.4s ease infinite;
@@ -890,7 +890,7 @@ input[type="text"]::placeholder {
     }
 }
 
-.cf-status-dot.offline {
+.vc-status-dot.offline {
     background: #ff2020;
     border: none;
     animation: dotOffline 2s ease infinite;
@@ -908,20 +908,21 @@ input[type="text"]::placeholder {
     }
 }
 
-.cf-badge-icon {
+.vc-badge-icon {
     width: 15px;
     height: 15px;
     flex-shrink: 0;
     display: block;
     opacity: 0.9;
     transition: opacity 0s;
+    transform: translateY(-2px);
 }
 
-.cf-status-badge:hover .cf-badge-icon {
+.vc-status-badge:hover .vc-badge-icon {
     opacity: 1;
 }
 
-.cf-status-text {
+.vc-status-text {
     white-space: nowrap;
     display: inline-block;
     line-height: 1;

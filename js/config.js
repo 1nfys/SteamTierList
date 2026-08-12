@@ -1,4 +1,4 @@
-export const API_URL = 'https://stl.curly2089.workers.dev/';
+export const API_URL = 'https://steam-tier-list-tau.vercel.app/';
 export const API_BASE = API_URL.replace(/\/$/, '');
 export const TURNSTILE_SITEKEY = '0x4AAAAAADVmLjENOqJicyxs';
 

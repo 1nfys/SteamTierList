@@ -10,6 +10,11 @@ const securityHeaders = {
   'Referrer-Policy': 'no-referrer'
 };
 
+const PROD_ORIGIN = 'https://1nfys.github.io';
+const isLocalhost = (origin) => /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin);
+const isAllowedOrigin = (origin) => origin === PROD_ORIGIN || isLocalhost(origin);
+const isBrowserRequest = (req) => req.headers.has('Sec-Fetch-Mode') && req.headers.has('Sec-Fetch-Site');
+
 const checkGlobalRateLimit = () => {
   const now = Date.now();
   globalReqs = globalReqs.filter(t => t > now - 60000);
@@ -70,17 +75,17 @@ const putUsage = async (kv, key, val) => {
 export default {
   async fetch(req, env) {
     const origin = req.headers.get('Origin') || '';
-    const isAllowed = !origin || ['https://1nfys.github.io', 'http://localhost:3000'].includes(origin);
+    const isAllowed = isAllowedOrigin(origin) && isBrowserRequest(req);
 
     const corsHeaders = {
       ...securityHeaders,
-      'Access-Control-Allow-Origin': isAllowed ? origin : 'https://1nfys.github.io',
+      'Access-Control-Allow-Origin': isAllowed ? origin : PROD_ORIGIN,
       'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
       'Access-Control-Allow-Headers': 'Content-Type, Authorization, x-local-password',
       'Access-Control-Max-Age': '86400'
     };
 
-    if (!isAllowed && origin !== 'https://1nfys.github.io') {
+    if (!isAllowed) {
       return new Response(JSON.stringify({ error: 'Access forbidden' }), {
         status: 403,
         headers: { 'Content-Type': 'application/json', ...securityHeaders }
@@ -98,7 +103,7 @@ export default {
       });
     }
 
-    if (origin === 'http://localhost:3000' && decodeURIComponent(req.headers.get('x-local-password') || '') !== env.LOCAL_PASSWORD) {
+    if (isLocalhost(origin) && decodeURIComponent(req.headers.get('x-local-password') || '') !== env.LOCAL_PASSWORD) {
       return new Response(JSON.stringify({ error: 'Unauthorized local access' }), {
         status: 401,
         headers: corsHeaders
@@ -180,7 +185,7 @@ export default {
         return jsonRes({ error: 'Invalid JSON body' }, 400);
       }
 
-      const isLocal = origin === 'http://localhost:3000' && decodeURIComponent(req.headers.get('x-local-password') || '') === env.LOCAL_PASSWORD;
+      const isLocal = isLocalhost(origin) && decodeURIComponent(req.headers.get('x-local-password') || '') === env.LOCAL_PASSWORD;
 
       if (!isLocal) {
         const token = body.turnstile_token;
