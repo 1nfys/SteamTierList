@@ -6,7 +6,5 @@
     "dev": "vercel dev",
     "deploy": "vercel --prod"
   },
-  "devDependencies": {
-    "vercel": "^34.0.0"
-  }
+  "type": "module"
 }
