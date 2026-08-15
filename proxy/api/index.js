@@ -29,6 +29,24 @@ const collectBody = (req) => new Promise((resolve, reject) => {
   req.on('error', reject);
 });
 
+const FORWARDED_HEADERS = [
+  'accept',
+  'accept-encoding',
+  'accept-language',
+  'authorization',
+  'content-type',
+  'origin',
+  'referer',
+  'sec-fetch-mode',
+  'sec-fetch-site',
+  'x-local-password'
+];
+
+const sanitizeHeaderValue = (val) => {
+  if (typeof val !== 'string') return String(val);
+  return val.replace(/[^\x00-\xFF]/g, '');
+};
+
 export default async function handler(req, res) {
   const cors = getCorsHeaders(req);
   for (const [k, v] of Object.entries(cors)) {
@@ -42,25 +60,36 @@ export default async function handler(req, res) {
 
   const PROXY_SECRET = process.env.PROXY_SECRET;
 
-  let pathWithQuery = req.headers['x-matched-path'] || req.url || '/';
-  if (req.url && req.url.includes('?') && !pathWithQuery.includes('?')) {
-    pathWithQuery += req.url.substring(req.url.indexOf('?'));
-  }
-  if (!pathWithQuery.startsWith('/api/') && pathWithQuery !== '/api') {
-    pathWithQuery = '/api' + (pathWithQuery.startsWith('/') ? pathWithQuery : '/' + pathWithQuery);
+  let requestedPath = req.headers['x-matched-path'] || req.url || '/api/stats';
+  if (requestedPath === '/api' && req.headers['x-matched-path']) {
+    requestedPath = req.headers['x-matched-path'];
   }
 
-  const target = WORKER_URL + pathWithQuery;
+  let query = '';
+  const qIdx = (req.url || '').indexOf('?');
+  if (qIdx !== -1) {
+    query = req.url.substring(qIdx);
+  }
+  const baseRequestedPath = requestedPath.split('?')[0];
+
+  let finalPath = baseRequestedPath;
+  if (!finalPath.startsWith('/api/') && finalPath !== '/api') {
+    finalPath = '/api' + (finalPath.startsWith('/') ? finalPath : '/' + finalPath);
+  }
+
+  const target = WORKER_URL + finalPath + (query && !finalPath.includes('?') ? query : '');
 
   const headers = {};
-  for (const [key, value] of Object.entries(req.headers)) {
-    if (['host', 'content-length', 'connection'].includes(key)) continue;
-    headers[key] = value;
+  for (const name of FORWARDED_HEADERS) {
+    const val = req.headers[name];
+    if (val) {
+      headers[name] = sanitizeHeaderValue(val);
+    }
   }
 
   const clientIp = req.headers['x-forwarded-for'] || req.socket?.remoteAddress || '';
-  if (PROXY_SECRET) headers['x-proxy-secret'] = PROXY_SECRET;
-  if (clientIp) headers['x-forwarded-for'] = clientIp;
+  if (PROXY_SECRET) headers['x-proxy-secret'] = sanitizeHeaderValue(PROXY_SECRET);
+  if (clientIp) headers['x-forwarded-for'] = sanitizeHeaderValue(clientIp);
 
   const opts = { method: req.method, headers };
   if (req.method !== 'GET' && req.method !== 'HEAD') {
