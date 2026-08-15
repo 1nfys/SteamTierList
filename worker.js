@@ -25,7 +25,12 @@ const checkGlobalRateLimit = () => {
   return true;
 };
 
-const getClientId = (req) => {
+const getClientId = (req, env) => {
+  const proxySecret = req.headers.get('x-proxy-secret');
+  if (proxySecret && env?.PROXY_SECRET && proxySecret === env.PROXY_SECRET) {
+    const forwarded = req.headers.get('x-forwarded-for');
+    if (forwarded) return forwarded.split(',')[0].trim();
+  }
   return req.headers.get('cf-connecting-ip') || 'unknown_ip';
 };
 
@@ -67,23 +72,29 @@ const putUsage = async (kv, key, val) => {
   }
 };
 
+const isValidProxy = (req, env) => {
+  const proxySecret = req.headers.get('x-proxy-secret');
+  return Boolean(proxySecret && env?.PROXY_SECRET && proxySecret === env.PROXY_SECRET);
+};
+
 export default {
   async fetch(req, env) {
+    const isProxy = isValidProxy(req, env);
     const origin = req.headers.get('Origin') || '';
-    const isAllowed = isAllowedOrigin(origin) && isBrowserRequest(req);
+    const isAllowed = isProxy || (isAllowedOrigin(origin) && isBrowserRequest(req));
 
     const corsHeaders = {
       ...securityHeaders,
-      'Access-Control-Allow-Origin': isAllowed ? origin : PROD_ORIGIN,
+      'Access-Control-Allow-Origin': isAllowed && origin ? origin : PROD_ORIGIN,
       'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization, x-local-password',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization, x-local-password, x-proxy-secret',
       'Access-Control-Max-Age': '86400'
     };
 
     if (!isAllowed) {
       return new Response(JSON.stringify({ error: 'Access forbidden' }), {
         status: 403,
-        headers: { 'Content-Type': 'application/json', ...securityHeaders }
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
 
@@ -107,7 +118,7 @@ export default {
 
     const url = new URL(req.url);
     const path = url.pathname.replace(/\/+/g, '/');
-    const ip = getClientId(req);
+    const ip = getClientId(req, env);
     const dateStr = new Date().toISOString().split('T')[0];
     const userKey = `user_${ip}_${dateStr}`;
     const globalKey = `global_${dateStr}`;
